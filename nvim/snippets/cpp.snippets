@@ -1,0 +1,2643 @@
+extends c
+
+#                MENU 
+# 1.- utils : son definciones para escritura rapida
+# 2.- debug 
+# 3.- input - output 
+# 4.- simple-template
+# 5.- complete: 
+# 6.- fastio
+# =============algorithms and structures================
+# 7.- graphs
+# 8.- math
+# 9.- data_structures
+#   -- Monoides
+# 10.- strings 
+
+#-------------------------------------------------------------------------------------------------------------------------
+
+
+# UTILS
+snippet ORDEN "para ordenar de varias maneras"
+    // BEGIN ORDEN
+    inline namespace ORDEN{
+    template <int from, int which> auto getfield(const auto& a) -> const auto& { static_assert(1 <= which && which <= from && from <= 5); auto fix = [](auto& x) -> auto& { return x; }; if constexpr (from == 1) { if constexpr (std::is_scalar_v<std::decay_t<decltype(a)>>) { if constexpr (which == 1) return fix(a); } else { auto& [a1] = a; if constexpr (which == 1) return fix(a1); } } else if constexpr (from == 2) { auto& [a1, a2] = a; if constexpr (which == 1) return fix(a1); if constexpr (which == 2) return fix(a2); } else if constexpr (from == 3) { auto& [a1, a2, a3] = a; if constexpr (which == 1) return fix(a1); if constexpr (which == 2) return fix(a2); if constexpr (which == 3) return fix(a3); } else if constexpr (from == 4) { auto& [a1, a2, a3, a4] = a; if constexpr (which == 1) return fix(a1); if constexpr (which == 2) return fix(a2); if constexpr (which == 3) return fix(a3); if constexpr (which == 4) return fix(a4); } else if constexpr (from == 5) { auto& [a1, a2, a3, a4, a5] = a; if constexpr (which == 1) return fix(a1); if constexpr (which == 2) return fix(a2); if constexpr (which == 3) return fix(a3); if constexpr (which == 4) return fix(a4); if constexpr (which == 5) return fix(a5); } }
+    template <int from, int which> struct GetField { decltype(auto) operator()(const auto& a) { return getfield<from, which>(a); } };
+    template <int from, int which, typename Cmp = std::equal_to<>> struct CompareField { bool operator()(const auto& a, const auto& b) const { return Cmp{}(getfield<from, which>(a), getfield<from, which>(b)); } };
+    template <int from, int which, int... whichs> struct Ordering { bool operator()(const auto& a, const auto& b) const { auto& aa = getfield<from, std::labs(which)>(a), & bb = getfield<from, std::labs(which)>(b); if (aa < bb) { return which > 0; } else if (bb < aa) { return which < 0; } else if constexpr (sizeof...(whichs)) { return Ordering<from, whichs...>{}(a, b); } return 0; } };
+    } // END ORDEN
+    // Ejemplos para una tupla de 3 campos (from = 3):
+    //   Ordering<3, 1>               → ordena por campo 1 ascendente
+    //   Ordering<3, -2>              → ordena por campo 2 descendente
+    //   Ordering<3, 1, 2, 3>         → campo1 ASC, luego campo2 ASC, luego campo3 ASC
+    //   Ordering<3, 1, -2>           → campo1 ASC, si empata campo2 DESC
+    //   Ordering<3, -3, 1, 2>        → primero campo3 DESC, luego campo1 ASC, luego campo2 ASC
+    // Uso:
+    //   std::sort(v.begin(), v.end(), Ordering<3, 1, -2>{});
+snippet UTILS_DEFINE "c++ 20 simplificacion de funciones de rangos "
+    inline namespace UTILS_DEFINE{
+    template <typename T>
+    inline void UNIQUE(std::vector<T> &x) {
+        std::ranges::sort(x);   
+        x.erase(std::ranges::unique(x).begin(), x.end());  
+        x.shrink_to_fit();  
+    }
+    template<typename T> 
+    inline auto LB(const std::vector<T>& ar,T x,bool pos = true){
+        auto it = std::ranges::lower_bound(ar,x); 
+        return pos ? std::distance(begin(ar),it) : *it ;
+    }
+    template<typename T>
+    inline auto UB(const std::vector<T>& ar,T x,bool pos = true){
+        auto it = std::ranges::upper_bound(ar,x); 
+        return pos ? std::distance(begin(ar),it) : *it ;
+    }
+    // ordena los valores por el indice
+    template <typename T>
+    std::vector<int> argsort(const std::vector<T> &nums) {
+        auto indices = std::vector<int>(sz(nums));
+        std::iota(begin(indices),end(indices),0);
+        std::ranges::sort(indices, [&](int i, int j) {
+            return (nums[i] == nums[j] ? i < j : nums[i] < nums[j]);
+        });
+        return indices;
+    }
+    // ordena el array por indice de I
+    template <typename T>
+    std::vector<T> rearrange(const std::vector<T> &nums, const std::vector<int> &I) {
+        std::vector<T> copy(sz(I));
+        for(int i = 0; i < sz(nums) ; i++) copy[i] = nums[I[i]];
+        return copy;
+    }
+    template<typename T> inline auto MIN(std::span<T> nums, bool pos = false) {
+        auto it = std::ranges::min_element(nums);
+        return pos ? std::distance(begin(nums), it) : *it;
+    }
+    template<typename T> inline auto MAX(std::span<T> nums, bool pos = false) {
+        auto it = std::ranges::max_element(nums);
+        return pos ? std::distance(begin(nums), it) : *it;
+    }
+    } //namespace UTILS_DEFINE 
+    $1
+
+snippet UTILS_DEFINE17 "definiciones utiles y rapidas"
+    inline namespace UTILS_DEFINE17{
+    #define all(x) x.begin(),x.end()
+    #define LB(c, x) distance((c).begin(), std::lower_bound(begin(c),end(c), (x)))
+    #define UB(c, x) distance((c).begin(), std::upper_bound(begin(c),end(c), (x)))
+    #define UNIQUE(x) \
+            std::sort(all(x)), x.erase(unique(all(x)), x.end()), x.shrink_to_fit()
+    // ordena los valores por el indice
+    template <typename T>
+    std::vector<int> argsort(const std::vector<T> &nums) {
+        std::vector<int> indices(sz(nums));
+        std::iota(all(indices), 0);
+        std::sort(all(indices), [&](int i, int j) {
+            return (nums[i] == nums[j] ? i < j : nums[i] < nums[j]);
+        });
+        return indices;
+    }
+    // ordena el array por indice de I
+    template <typename T>
+    std::vector<T> rearrange(const std::vector<T> &nums, const std::vector<int> &I) {
+        std::vector<T> copy(sz(I));
+        for(int i = 0; i < sz(nums) ; i++) copy[i] = nums[I[i]];
+        return copy;
+    }
+    template<typename T> inline auto MIN(std::span<T> nums, bool pos = false) {
+        auto it = std::min_element(all(nums));
+        return pos ? std::distance(nums.begin(), it) : *it;
+    }
+    template<typename T> inline auto MAX(std::span<T> nums, bool pos = false) {
+        auto it = std::max_element(nums.begin(), nums.end());
+        return pos ? std::distance(nums.begin(), it) : *it;
+    }
+    #undef all 
+    } //namespace UTILS_DEFINE 
+snippet UTIL_BITS 
+    //Bits utils
+    inline namespace UTIL_BITS{
+    #define TEM template<typename T> inline 
+    #define st32(x) static_cast<uint32_t>(x) 
+    #define st64(x) static_cast<uint64_t>(x) 
+    //te dice el el numero de bits encedidos espedico 3 = 111 -> 7
+    TEM int pop_count(const T& x) {return (sizeof(T)<=4)?__builtin_popcount(st32(x)):__builtin_popcountll(st64(x));}
+    // si el total de bits activos es impar o par 
+    TEM int pop_parity(const T& x) {return (sizeof(T)<=4)?__builtin_parity(st32(x)):__builtin_parityll(st64(x));}
+    // pos de bit activo mas alto [0,1,2,3,4,5]->[-1,0,1,1,2] 
+    TEM int topbit(const T& x) {return (x==0)?-1:(sizeof(T)<=4)?31-__builtin_clz(st32(x)):63-__builtin_clzll(st64(x));}
+    // pos de bit activo mas bajo [0,1,2,3,4]->[-1,31,30,30,29]
+    TEM int lowbit(const T& x) {return (x==0)?-1:(sizeof(T)<=4)?__builtin_ctz(st32(x)):__builtin_ctzll(st64(x));}
+    //te dice si es potencia de dos
+    TEM bool ispow2(const T& i){return i&&(i&-i)==i;}
+    //calcula la potecia de dos mayor o igual a  n 
+    TEM T minpot2(const T& n){return T(1)<<(topbit(n-1)+1);}
+    //Apaga (pone en 0) el bit en la pos p 
+    TEM T off_bit(T& n, int p) {return n & ~(T(1) << p);}
+    //Enciende (pone en 1) el bit en la pos p 
+    TEM T on_bit(T n, int p) {return n | (T(1)<< p);}
+    //invierte el estado del bit en la pos p 
+    TEM T change_bit(T n, int p) {return n ^ (T(1)<< p);}
+    //retorna el valor del bit en la pos p 
+    TEM bool has_pos_bit(T& n, int p){return n >> p & T(1);}
+    //retorna el valor total del bit mas peque 18 = 10010 -> 10 = 2
+    TEM T lowest_bit(const T& n) {return n & -n;}
+    // retorna el rango dado con bits activos
+    TEM T create_mask(int l, int r){return ((1U<<(r-l+1))-1)<< l;}
+    // cuenta bits activos entre l y r (inclusive)
+    TEM int bit_count_range(T x, int l, int r){ 
+        return pop_count((x >> l) & ((T(1) << (r - l + 1)) - 1)); 
+    }
+    // cantidad de bits necesarios para representar x (topbit + 1)
+    TEM int bit_length(const T& x){ return x == 0 ? 0 : topbit(x) + 1;}
+    // suma total de bits activos en [0..n] (O(log n))
+    TEM T pref_bit(T n){ // in log2(n)
+        T res = 0;
+        for(int i = 0; (T(1) << i) <= n; ++i){
+            T total = (n + 1) / (T(1) << (i + 1));
+            res += total * (T(1) << i);
+            T rem = (n + 1) % (T(1) << (i + 1));
+            if(rem > (T(1) << i)) res += rem - (T(1) << i);
+        }
+        return res;
+    }
+    // suma de bits activos en [l..r]
+    TEM T range_bit(T l, T r){ return pref_bit(r) - pref_bit(l - 1); }
+    // suma de bits usados (bit_length) en [l..r] in log2(n)
+    TEM T total_bits(T l, T r){
+        T total = 0;
+        for(int i = 0; i < 8 * sizeof(T); ++i){
+            T lo = std::max<T>(l, T(1) << i);
+            T hi = std::min<T>(r, (T(1) << (i + 1)) - 1);
+            if(lo > hi) continue;
+            total += (hi - lo + 1) * (i + 1);
+        }
+        return total;
+    }
+    #undef sp32 
+    #undef sp64 
+    #undef TEM
+    }
+snippet STRING_UTILS "convesiones y splits"
+    inline namespace STRING_UTILS{
+    //CONVERSIONS
+    template<typename T> 
+    T to_int(const std::string& s){
+        T val = 0; 
+        std::stringstream conv(s);
+        conv>>val;
+        return val;
+    }
+    // FOR int to string usar : std::to_string();
+    template<typename T> 
+    std::string to_string2(T& val){
+        std::stringstream conv;
+        conv<<val;
+        return conv.str();
+    }
+    //SPLITS 
+    //h,o,l,a , -> h o l a
+    std::vector<std::string> split(const std::string &s,char sep){
+        std::stringstream ss(s);
+        std::string tmp;
+        std::vector<std::string> text;
+        while(std::getline(ss,tmp,sep)){ 
+            if(!tmp.empty())
+                text.emplace_back(tmp);
+        }
+        return text;
+    }
+    //h__o__l__a __ -> h o l a
+    std::vector<std::string> split(const std::string &str, const std::string &sep) { 
+        std::vector<std::string> text;
+        size_t start = 0;
+        size_t end = str.find(sep);
+        while (end != std::string::npos) {
+            std::string tmp= str.substr(start, end - start);
+            if (!tmp.empty()) {
+                text.emplace_back(tmp);
+            }
+            start = end + sz(sep);
+            end = str.find(sep, start);
+        }
+        std::string lasttmp = str.substr(start);
+        if (!lasttmp.empty()) {
+            text.emplace_back(lasttmp);
+        }
+        return text;
+    }
+    // Convert Decimal to any base
+    std::string decimal_to_any_base(i64 decimal, i64 base){
+        if(decimal == 0) return "0";
+        std::string num = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        std::string result;
+        do{
+            result.push_back(num[decimal % base]);
+            decimal /= base;
+        }while(decimal != 0);
+        return std::string(result.rbegin(), result.rend());
+    }
+    // Convert any base to decimal
+    i64 any_base_to_decimal(std::string str, int base) {
+        auto val = [](char c){
+            return (c >= '0' && c <= '9' ? (int) c - '0' : (int) c - 'A' + 10);
+        };
+        i64 len = (int)str.size(), power = 1, num = 0, i;
+        for (i = len - 1; i >= 0; i--) {
+            num += val(str[i]) * power;
+            power = power * base;
+        }
+        return num;
+    }
+
+    }// STRING_UTILS 
+    $1
+snippet MUL_AND_SUM_MANUAL "suma y multiplicaciones manuales" 
+    typedef i64 tp;
+    #define add(n,s,d,k) forn(i,0,n)(d)[i]+=(s)[i]*k
+    tp* ini(int n){tp *r=new tp[n];std::fill(r,r+n,0);return r;}
+    void karatsura(int n, tp* p, tp* q, tp* r){
+    	if(n<=0)return;
+    	if(n<35)forn(i,0,n)forn(j,0,n)r[i+j]+=p[i]*q[j];
+    	else {
+    		int nac=n/2,nbd=n-n/2;
+    		tp *a=p,*b=p+nac,*c=q,*d=q+nac;
+    		tp *ab=ini(nbd+1),*cd=ini(nbd+1),*ac=ini(nac*2),*bd=ini(nbd*2);
+    		add(nac,a,ab,1);add(nbd,b,ab,1);
+    		add(nac,c,cd,1);add(nbd,d,cd,1);
+    		karatsura(nac,a,c,ac);karatsura(nbd,b,d,bd);
+    		add(nac*2,ac,r+nac,-1);add(nbd*2,bd,r+nac,-1);
+    		add(nac*2,ac,r,1);add(nbd*2,bd,r+nac*2,1);
+    		karatsura(nbd+1,ab,cd,r+nac);
+    		free(ab);free(cd);free(ac);free(bd);
+    	}
+    }
+    std::vector<tp> multiply(std::vector<tp> p0, std::vector<tp> p1){
+    	int n=std::max(sz(p0),sz(p1));
+    	tp *p=ini(n),*q=ini(n),*r=ini(2*n);
+    	forn(i,0,sz(p0)) p[i]=p0[i];
+    	forn(i,0,sz(p1)) q[i]=p1[i];
+    	karatsura(n,p,q,r);
+        std::vector<tp> rr(r,r+sz(p0)+sz(p1)-1);
+    	free(p);free(q);free(r);
+    	return rr;
+    }
+    std::string manual_sum(const std::string& a, const std::string& b) {
+        std::string res;
+        int carry = 0, i = sz(a) - 1, j = sz(b) - 1;
+        while (i >= 0 || j >= 0 || carry) {
+            int s = carry;
+            if (i >= 0) s += a[i--] - '0';
+            if (j >= 0) s += b[j--] - '0';
+            res += (s % 10) + '0';
+            carry = s / 10;
+        }
+        std::reverse(res.begin(), res.end());
+        return res;
+    }
+snippet coordinate_compression 
+    inline namespace coordinate_compression{
+    template <class T>
+    class compress{
+    public: 
+        std::vector<T> cop;
+        compress(const std::vector<T>& ar) {
+            cop = ar;
+            std::ranges::sort(cop);
+            cop.erase(unique(begin(cop), end(cop)), end(cop));
+        }
+        inline int get_id(const T& x) const { // index 0th
+            return std::ranges::lower_bound(cop, x) - cop.begin();
+        }
+        inline int operator()(const T& x) const { return get_id(x); }
+        inline T operator[](int i) const { return cop[i]; }
+        inline int size() const { return (int)cop.size(); }
+    };
+    };
+    $1
+snippet MATRIX_Define
+    //compress matrix
+    inline namespace Matrix_Easy{
+    template <size_t D> struct dim : std::array<int, D> {
+        template <typename ...Ints> dim(const Ints& ...ns) : 
+            std::array<int, D>::array{ static_cast<int>(ns)... } {}
+    };
+    template <typename ...Ints> dim(const Ints& ...) -> dim<sizeof...(Ints)>;
+    template <class T, size_t D, size_t I = 0>
+    auto Mat(const dim<D> &ns, const T& value = {}) {
+        if constexpr (I + 1 < D) {
+            return std::vector(ns[I], Mat<T, D, I + 1>(ns, value));
+        } else {
+            return std::vector<T>(ns[I], value);
+        }
+    }
+    }//namespace Matrix_Easy
+    $1
+snippet MATRIX_pow 
+    // BEGIN MATRIX_POW 
+    inline namespace MATRIX_POW {
+    using Row = std::vector<u64>;
+    using Mat = std::vector<Row>;
+    Mat ones(int n) {
+        Mat r(n, Row(n, 0));
+        forn(i, 0, n) r[i][i] = 1;
+        return r;
+    }
+    Mat operator*(const Mat& a, const Mat& b){
+        int n = sz(a), m = sz(b[0]), z = sz(a[0]);
+        Mat r(n, Row(m, 0));
+        forn(i,0,n) forn(j,0,m) forn(k,0,z){
+            r[i][j]=add(r[i][j],mul(a[i][k],b[k][j]));
+        }
+        return r;
+    }
+    Mat matrix_pow(Mat& base, i64 exp){
+        int n = sz(base);
+        Mat r = ones(n);
+        while (exp > 0) {
+            if (exp & 1LL) r = r * base;
+            base = base * base;
+            exp >>= 1;
+        }
+        return r;
+    }
+    } 
+    // END MATRIX_POW
+    $1
+snippet FOR "macros for for XD"
+    #define over(_1,_2,_3,name,...) name
+    #define rep1(n) for(auto _=0;_<int(n);++_)
+    #define rep2(i,n) for(auto i=0;i<int(n);++i)
+    #define rep3(i,a,b) for(auto i=a;i<int(b);++i)
+    #define forn(...) over(__VA_ARGS__,rep3,rep2,rep1)(__VA_ARGS__)
+snippet YES_OR_NO "si o no loko"
+    inline void YES(bool t = 1) { std::cout<<(t ? "YES" : "NO")<<'\n'; }
+    inline void NO(bool t = 1) { YES(!t); }
+    inline void Yes(bool t = 1) { std::cout<<(t ? "Yes" : "No")<<'\n'; }
+    inline void No(bool t = 1) { Yes(!t); }
+    inline void yes(bool t = 1) { std::cout<<(t ? "yes" : "no")<<'\n'; }
+    inline void no(bool t = 1) { yes(!t); }
+snippet TIPOS2 "todos los tipos tipos especiales "
+    using i8 = int8_t;
+    using u8 = uint8_t;
+    using i16 = int16_t;
+    using u16 = uint16_t;
+    using u32 = int32_t;
+    using u64 = uint64_t;
+    using i128 = __int128_t;
+    using u128 = __uint128_t;
+    using usize = size_t;
+snippet TIPOS1 "tipos comunes"
+    using u32 = uint32_t;
+    using u64 = uint64_t;
+    using i128 = __int128_t;
+    using u128 = __uint128_t;
+snippet FAST_DEFINE "define utiles"
+    #pragma GCC optimize("Ofast,unroll-loops")
+snippet ABREVIACIONES_DEFINE "define matrix and pqg" 
+    //ABREVIACIONES DE TIPOS
+    template<typename T> using V = std::vector<T>;
+    template<typename T> using Matrix = V<V<T>>;
+    template<typename T> using Matrix3D = Matrix<V<T>>;
+    template<typename T> using pq = std::priority_queue<T>; //mayor a menor
+    template<typename T> using pqg = std::priority_queue<T,V<T>,std::greater<T>>; //de menor a mayor
+
+snippet INF "complete"
+    //multitype INF c++ 20
+    inline namespace INF_MULTITYPE{
+        template <class T> constexpr T INF = 0;
+        template <> constexpr int INF<int> = 1'000'000'000;
+        template <> constexpr i64 INF<i64> = i64(INF<int>) * INF<int> * 2;
+        template <> constexpr uint64_t INF<uint64_t> = INF<i64>;
+        template <> constexpr __int128_t INF<__int128_t> = __int128_t(INF<i64>) * INF<i64>;
+        template <> constexpr double INF<double> = INF<i64>;
+        template <> constexpr long double INF<long double> = INF<i64>;
+    }//namespace INF_MULTITYPE
+snippet RANDOM 
+	// Random number generator
+	const u64 SEED = std::chrono::steady_clock::now().time_since_epoch().count();
+	//random_shuffle  SEED;
+	std::mt19937_64 rng(SEED);
+	std::uniform_int_distribution<u64> rnd(100,199999);
+	template<typename X,typename T>
+	inline X random(T low, T high) {
+	    return std::uniform_int_distribution<X>{low, high}(rng);
+	}
+snippet ordered_set 
+	#include <ext/pb_ds/tree_policy.hpp>
+	#include <ext/pb_ds/assoc_container.hpp>
+	using namespace __gnu_pbds;
+	template<typename T>  using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+    //   ordered_set<T> -> similar a std::set pero con acceso por índice.
+    //   Admite las siguientes operaciones en O(log n):
+    //   - os.insert(x);         // Inserta x
+    //   - os.erase(x);          // Elimina x (si existe)
+    //   - os.find_by_order(k);  // Devuelve iterador al elemento en la posición k (0-indexed)
+    //   - os.order_of_key(x);   // Devuelve cuántos elementos son < x
+    //   - os.find_by_order(os.order_of_key(val)) // simular lowerbound  y retorna iterador  
+    //  -  os.order_of_key({R+1, 0}) - os.order_of_key({L, 0}); // te dice la cantidad de valores en L,R 
+#-------------------------------------------------------------------------------------------------------------------------
+#DEBUG
+snippet algo
+    _($1);
+snippet deb 
+    _(deb($1));
+snippet deb_mat
+    _(deb_mat($1));
+snippet debl 
+    _(debl($1));
+snippet deb_array 
+    _(deb_array($1));
+snippet timedeb 
+    _(time($1));
+snippet /* "comentarios multilineas" 
+    /*
+    $1
+    */
+snippet DEBUGGER 
+    //------------Debugguer--------------
+    #ifdef SLIME
+    	#include "/home/jorge/slime_debug.hpp"
+    #else
+    	#define _(...)
+        #define TIME 
+    #endif
+    //-----------------------------------
+snippet DEBUGGER11
+	//DEBUGGER ULTRA PREMIUM XD
+	template <class c>
+	struct rge {
+	    c b, e;
+	};
+	template <class c>
+	rge<c> range(c i, c j) {
+	    return rge<c>{i, j};
+	}
+	template <class c>
+	auto dud(c* x) -> decltype(std::cerr << *x, 0) {
+	    return 0;
+	}
+	template <class c>
+	char dud(...) {
+	    return 0;
+	}
+	struct debug {
+	#ifdef SLIME 
+	    ~debug() {
+	        std::cerr << std::endl;
+	    }
+	    template <class c>
+	    typename std::enable_if<sizeof(dud<c>(0)) != 1, debug&>::type operator<<(c i) {
+	        std::cerr << std::boolalpha << i;
+	        return *this;
+	    }
+	    template <class c>
+	    typename std::enable_if<sizeof(dud<c>(0)) == 1, debug&>::type operator<<(c i) {
+	        return *this << range(std::begin(i), std::end(i));
+	    }
+	    template <class b, class c>
+	    debug& operator<<(std::pair<b, c> d) {
+	        return *this << "(" << d.first << ", " << d.second << ")";
+	    }
+	    template <class c>
+	    debug& operator<<(rge<c> d) {
+	        *this << "[";
+	        for (auto it = d.b; it != d.e; ++it) {
+	            *this << ", " + 2 * (it == d.b) << *it;
+	        }
+	        return *this << "]";
+	    }
+	#else
+	    template <class c>
+	    debug& operator<<(const c&) {
+	        return *this;
+	    }
+	#endif
+	};
+	#define _(arg1) " [" << #arg1 ": " << (arg1) << "] "
+	#define _l(...) " ["<<" ["<<__LINE__<<"] "<< #__VA_ARGS__ ": " << (__VA_ARGS__) << "] "
+	#define debu debug()
+	#define deb_(...) debug() << _(__VA_ARGS__)
+	#define debl(...) debug() << _l(__VA_ARGS__)
+	//=====================================================================
+	$1
+#-------------------------------------------------------------------------------------------------------------------------
+snippet hora "simple hora" b
+    /*                                          /\_/\
+        - Author: Jorge_Slime                  (= ._.)
+        - Created: `strftime('%d-%m-%Y')` | `strftime('%H:%M:%S')`       / >  \>
+    */
+	$1
+#-------------------------------------------------------------------------------------------------------------------------
+#INPUT_OUTPUT
+snippet INPUT_EASY "sobrecarga de operadores para IO" 
+    inline namespace INPUT_EASY{
+        // cin->vector
+        template <typename T>
+        std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+            for (auto &in : v) is >> in;
+            return is;
+        }
+        // cin->vector(pair)
+        template <typename T>
+        std::istream &operator>>(std::istream &is, std::vector<std::pair<T, T>> &v) {
+          for (auto &in : v) is >> in.first >> in.second;
+          return is;
+        }
+    }//namespace INPUT_EASY
+    $1
+snippet IO_128 "IO de type 128 "
+    inline namespace IO_128{
+        //    soporta un aprox de 39 dig hasta 2^128 - 1 
+        // overload operator for only i128
+        std::istream &operator>>(std::istream &is,__int128_t &v) {
+            std::string s;
+            is>>s;
+            v=0;
+            for(auto &it:s) if(std::isdigit(it)) v=v*10+it-'0';
+            if(s[0]=='-') v*=-1;
+            return is;
+        }
+        std::ostream &operator<<(std::ostream &os,const __int128_t &v) {
+            if(v==0) return (os<<"0");
+            __int128_t num=v;
+            if(v<0) os<<'-',num=-num;
+            std::string s;
+            for(;num>0;num/=10) s.emplace_back((char)(num%10)+'0');
+            reverse(all(s));
+            return (os<<s); //exit type string warning
+        }
+    }
+    $1
+snippet print_mat "lambda print matrix"
+    auto print_mat = [](const auto& mat)->void{
+       for(auto &i:mat){
+            for(auto &j: i){
+                std::cout<<j<<" ";
+            }    
+            std::cout<<'\n';
+        } 
+        std::cout<<'\n';
+    };
+    auto print_mat3D = [](const auto& mat)->void{
+        for (const auto& i : mat) {           
+            for (const auto& j : i) {       
+                for (const auto& k : j) { 
+                    std::cout << k << " ";
+                }
+                std::cout << '\n';          
+            }
+            std::cout << '\n';                    
+        }
+    };
+    $1
+snippet IO20 "facilidad para IO"
+    inline namespace IO20{
+        #define SFINAE(x, ...)                                                         \
+            template <class, class = void> struct x : std::false_type {};              \
+            template <class T> struct x<T, std::void_t<__VA_ARGS__>> : std::true_type {}
+        
+        SFINAE(DefaultI, decltype(std::cin >> std::declval<T &>()));
+        SFINAE(DefaultO, decltype(std::cout << std::declval<T &>()));
+        SFINAE(IsTuple, typename std::tuple_size<T>::type);
+        SFINAE(Iterable, decltype(std::begin(std::declval<T>())));
+    
+        template <auto &is> struct Reader {
+            template <class T> void Impl(T &t) {
+                if constexpr (DefaultI<T>::value) is >> t;
+                else if constexpr (Iterable<T>::value) {
+                    for (auto &x : t) Impl(x);
+                } else if constexpr (IsTuple<T>::value) {
+                    std::apply([this](auto &...args) { (Impl(args), ...); }, t);
+                } else static_assert(IsTuple<T>::value, "No matching type for read");
+            }
+            template <class... Ts> void read(Ts &...ts) { ((Impl(ts)), ...); }
+        };
+    
+        template <class... Ts> void re(Ts &...ts) { Reader<std::cin>{}.read(ts...); }
+    
+        #define def(t, args...)                                                        \
+            t args;                                                                    \
+            IO20::re(args);
+        // cin->vector
+        template <typename T>
+        std::istream &operator>>(std::istream &is, std::vector<T> &v) {
+            for (auto &in : v) is >> in;
+            return is;
+        }
+        // cin->vector(pair)
+        template <typename T>
+        std::istream &operator>>(std::istream &is, std::vector<std::pair<T, T>> &v) {
+          for (auto &in : v) is >> in.first >> in.second;
+          return is;
+        }
+        // Simple print multiparameter 
+        template <class Head, class... Tail>
+        inline void print(Head &&head, Tail &&...tail) {
+            std::cout << head;
+            if constexpr (sizeof...(tail) > 0) {
+                std::cout << ' ';
+                print(std::forward<Tail>(tail)...);
+            } else { 
+                std::cout << '\n';
+            }
+        }
+        // Print all iterables
+        template <typename X, typename = std::enable_if_t<!std::is_same_v<X, std::string>>>
+        inline void print_(const X &c) {
+            for (auto it = begin(c); it != end(c); ++it) 
+                std::cout << *it << " \n"[next(it) == end(c)];
+        }
+        //print all iterables to N
+        template <typename X, typename = std::enable_if_t<!std::is_same_v<X, std::string>>>
+        inline void print_(const X &c,const int N){
+            int pos = 0; 
+            for(auto it=begin(c);it!=end(c);++it,pos++){ 
+                if(pos == N) {
+                    std::cout<<'\n';
+                    break;
+                }
+                std::cout<<*it<<" ";
+            }
+        } 
+        // Print static array
+        template <typename T, size_t N> 
+        inline void print_(const T (&v)[N]) {
+            for (size_t i = 0; i < N; ++i) 
+                std::cout << v[i] << " \n"[i == N - 1];
+        }
+        // Print static array to N
+        template <typename T, size_t N> 
+        inline void print_(const T(&v)[N], size_t n) {
+            for (size_t i = 0; i < n; ++i) 
+                std::cout << v[i] << " \n"[i == n - 1];
+        }
+    }//namespace IO20 
+    $1
+snippet PRINT
+    inline namespace Print{
+    //simple print multiparameter 
+    template <class Head, class... Tail>
+    inline void print(Head &&head, Tail &&...tail) {
+        std::cout << head;
+        if constexpr (sizeof...(tail)>0) {
+            std::cout << ' ';
+            print(std::forward<Tail>(tail)...);
+        } else { 
+            std::cout << '\n';
+        }
+    }
+    //print all iteables
+    template <typename X, typename = std::enable_if_t<!std::is_same_v<X, std::string>>>
+    inline void print_(const X &c){
+        for(auto it=begin(c);it!=end(c);++it) 
+            std::cout<<*it<<" \n"[next(it)==end(c)];
+    } 
+    //print all iterables to N
+    template <typename X, typename = std::enable_if_t<!std::is_same_v<X, std::string>>>
+    inline void print_(const X &c,const int N){
+        int pos = 0; 
+        for(auto it=begin(c);it!=end(c);++it,pos++){ 
+            if(pos == N) {
+                std::cout<<'\n';
+                break;
+            }
+            std::cout<<*it<<" ";
+        }
+    } 
+    //print static array
+    template <typename T, size_t N> 
+    inline void print_(const T (&v)[N]) {
+        for (size_t i = 0; i < N; ++i)
+            std::cout << v[i] << " \n"[i==N-1];
+    }
+    //print static array to N
+    template <typename T,size_t N> 
+    inline void print_(const T(&v)[N],int n) {
+        for (size_t i = 0; i < n; ++i)
+            std::cout << v[i] << " \n"[i==n-1];
+    }
+    template<typename T> 
+    void print_mat(const T& mat,int n,int m){
+        for(auto i = 0;i<n;i++){
+            for(auto j = 0 ; j<m;j++){
+                std::cout<<mat[i][j]<<' ';
+            }
+            std::cout<<'\n';
+        }
+    }
+    template<typename T,size_t N,size_t M> 
+    void print_mat(const T(&mat)[N][M]){
+        for(auto i = 0;i<N;i++){
+            for(auto j = 0 ; j<M;j++){
+                std::cout<<mat[i][j]<<' ';
+            }
+            std::cout<<'\n';
+        }
+    }
+    template<typename T> 
+    void print_mat(const T& mat){
+       for(auto &i:mat){
+            for(auto &j: i){
+                std::cout<<j<<" ";
+            }    
+            std::cout<<'\n';
+        } 
+        std::cout<<'\n';
+    }
+    template<typename T> 
+    void print_mat3D(const T& mat){
+        for (const auto& i : mat) {           
+            for (const auto& j : i) {       
+                for (const auto& k : j) { 
+                    std::cout << k << " ";
+                }
+                std::cout << '\n';          
+            }
+            std::cout << '\n';                    
+        }
+    };
+    
+    }//namespace Print
+    $1
+snippet PRINT20  "c++ 20 onwars"
+    //Print c++ 20 onwars
+    inline namespace Print20{
+    #define forn(i,n) for(auto i=0;i<n;i++)
+    template <class H, class... T> inline void print(H &&head, T&&...tail) {
+        std::cout << head;
+        if constexpr (sizeof...(tail)>0) {std::cout << ' ';print(std::forward<T>(tail)...); }
+        else std::cout << '\n';
+    }
+    template <typename X> inline void print_(const X &c) {
+        if constexpr (std::ranges::range<X> && !std::same_as<X, std::string>) {
+            std::ranges::for_each(c, [](const auto &x) { std::cout << x << ' '; });
+            std::cout << '\n';
+        } else std::cout << c << '\n';
+    }
+    template <typename X> inline void print_(const X &c, size_t N) {
+        size_t count = 0;
+        for (const auto &x : c) {std::cout << x << ' ';if (++count >= N) break;}
+        std::cout << '\n';
+    }
+    template <typename T, size_t N> inline void print_(std::span<T, N> v) { print_(v, N);}
+    template<typename T> void print_mat(const T& mat,int n,int m){
+        forn(i,n){forn(j,m){ std::cout<<mat[i][j]<<' ';}std::cout<<'\n';}
+    }
+    template<typename T,size_t N,size_t M> 
+    void print_mat(const T(&mat)[N][M]){
+        forn(i,N) {forn(j,M){ std::cout<<mat[i][j]<<' ';}std::cout<<'\n';}
+    }
+    template<typename T> 
+    void print_mat(const T& mat){
+       for(auto &i:mat){for(auto &j:i){ std::cout<<j<<" ";}std::cout<<'\n';} 
+    }
+    template<typename T> 
+    void print_mat3D(const T& mat){
+        for (const auto& i : mat) {print_mat(i);}
+    };
+    #undef forn
+    }//namespace Print 20
+    $1
+#-------------------------------------------------------------------------------------------------------------------------
+#SIMPLE TEMPLATE
+snippet simple_basic
+    #include <iostream>
+    
+    int main(){
+        
+        return 0;
+    }
+snippet simple "with namespace std"
+    // - Author: Jorge_Slime - `strftime('%d.%m.%Y')` | `strftime('%H:%M:%S')`
+    #include <bits/stdc++.h>
+    using namespace std; 
+    #define forn(i,a,b) \
+        using _T = decay_t<decltype(b)>; \
+        for (_T i = (a); i < (b); ++i)
+    #define all(x) (x).begin(),(x).end()
+    #define sz(x) int((x).size())
+    #if defined(SLIME)
+        #include "/home/jorge/slime_debug.hpp"   
+    #else                                        
+        #define _(...) void(77)
+    #endif
+    using i64 = int64_t;         
+    
+    auto solve([[maybe_unused]]auto&& tc)->void{ 
+        $2
+    };
+    [[gnu::target("avx2")]] auto main(void) -> int {
+        cin.tie(nullptr)->sync_with_stdio(false);
+        cin.exceptions(ios::failbit | ios::badbit);
+        size_t t_c = 1;
+        //$1cin >> t_c;
+        forn(t,0,t_c){ _(case(t)); solve(t); }
+        _(time_());
+        return 0;
+    } // I can....
+
+
+snippet simpleT "without namespace std"
+    // - Author: Jorge_Slime - `strftime('%d.%m.%Y')` | `strftime('%H:%M:%S')`
+    #include <bits/stdc++.h>
+    #define sz(x)  int((x).size())
+    #define forn(i,a,b) for(auto i{a};i<(b);++i)
+    #define forr(i,b,a) for(auto i{b};i>=(a);--i)
+    #define all(x) (x).begin(),(x).end()
+    #if defined(SLIME)
+        #include "/home/jorge/slime_debug.hpp"   
+    #else                                        
+        #define _(...) void(77)
+    #endif
+    using i64 = int64_t;         
+    
+    [[gnu::target("avx2")]] auto main(void) -> int {
+        std::cin.tie(nullptr)->sync_with_stdio(false);
+        std::cin.exceptions(std::ios::failbit | std::ios::badbit);
+
+        auto solve = [&]([[maybe_unused]]auto&& tc)->void{ 
+            $1
+        };
+    
+        size_t t_c = 1;
+        // std::cin >> t_c;
+
+        for(size_t t = 0;t < t_c; t++){ _(case(t)); solve(t); }
+        _(time_());
+        return 0;
+    } // I can....
+
+#-------------------------------------------------------------------------------------------------------------------------
+#TURBO
+snippet turbo 
+	std::ios_base::sync_with_stdio(0);
+	std::cin.tie(0);
+snippet turbo17
+	std::cin.tie(nullptr)->sync_with_stdio(false);
+	std::cin.exceptions(std::ios::failbit | std::ios::badbit);
+snippet FASTIO_SIMPLE "solo con enteros tanto en input y output" 
+    // BEGIN FASTIO_SIMPLE
+    namespace FastRead{static constexpr int SZ=1<<15;char buf[SZ],*S,*T;inline char gc(){if(S==T)T=(S=buf)+fread(buf,1,SZ,stdin);return S==T?'\n':*S++;}struct Rd{template<typename T>Rd&operator>>(T&x){bool neg=0;char c=gc();while(c!='-'&&!isdigit(c))c=gc();if(c=='-')neg=1,c=gc();x=0;while(isdigit(c))x=x*10+(c-'0'),c=gc();if(neg)x=-x;return*this;}Rd*tie(std::nullptr_t){return this;}void sync_with_stdio(bool){}}io;}namespace std{inline auto& io=FastRead::io;} 
+    #define cin io
+    // END FASTIO_SIMPLE
+	$1
+snippet fastIO17 
+	//fastIO ULTRA PREMIUM-> ONLY FILES ENTRY
+	namespace fastio {  //for more check this blog https://judge.yosupo.jp/submission/21623
+	static constexpr uint32_t SZ = 1 << 17;
+	char ibuf[SZ];
+	char obuf[SZ];
+	char out[100];
+	// pointer of ibuf, obuf
+	uint32_t pil = 0, pir = 0, por = 0;
+	struct Pre {
+	  char num[10000][4];
+	  constexpr Pre() : num() {
+	    for (int i = 0; i < 10000; i++) {
+	      int n = i;
+	      for (int j = 3; j >= 0; j--) {
+	        num[i][j] = n % 10 | '0';
+	        n /= 10;
+	      }
+	    }
+	  }
+	} constexpr pre;
+	 
+	inline void load() {
+	  memcpy(ibuf, ibuf + pil, pir - pil);
+	  pir = pir - pil + fread(ibuf + pir - pil, 1, SZ - pir + pil, stdin);
+	  pil = 0;
+	  if (pir < SZ) ibuf[pir++] = '\n';
+	}
+	inline void flush() {
+	  fwrite(obuf, 1, por, stdout);
+	  por = 0;
+	}
+	 
+	void rd(char &c) {
+	  do {
+	    if (pil + 1 > pir) load();
+	    c = ibuf[pil++];
+	  } while (isspace(c));
+	}
+	 
+	void rd(string &x) {
+	  x.clear();
+	  char c;
+	  do {
+	    if (pil + 1 > pir) load();
+	    c = ibuf[pil++];
+	  } while (isspace(c));
+	  do {
+	    x += c;
+	    if (pil == pir) load();
+	    c = ibuf[pil++];
+	  } while (!isspace(c));
+	}
+	 
+	template <typename T>
+	void rd_real(T &x) {
+	  string s;
+	  rd(s);
+	  x = stod(s);
+	}
+	 
+	template <typename T>
+	void rd_integer(T &x) {
+	  if (pil + 100 > pir) load();
+	  char c;
+	  do
+	    c = ibuf[pil++];
+	  while (c < '-');
+	  bool minus = 0;
+	  if constexpr (is_signed<T>::value || is_same_v<T, __int128>) {
+	    if (c == '-') { minus = 1, c = ibuf[pil++]; }
+	  }
+	  x = 0;
+	  while ('0' <= c) { x = x * 10 + (c & 15), c = ibuf[pil++]; }
+	  if constexpr (is_signed<T>::value || is_same_v<T, __int128>) {
+	    if (minus) x = -x;
+	  }
+	}
+	 
+	void rd(int &x) { rd_integer(x); }
+	void rd(long long &x) { rd_integer(x); }
+	void rd(__int128 &x) { rd_integer(x); }
+	void rd(unsigned int &x) { rd_integer(x); }
+	void rd(unsigned long long &x) { rd_integer(x); }
+	void rd(unsigned __int128 &x) { rd_integer(x); }
+	void rd(double &x) { rd_real(x); }
+	void rd(long double &x) { rd_real(x); }
+	void rd(__float128 &x) { rd_real(x); }
+	 
+	template <class T, class U>
+	void rd(pair<T, U> &p) {
+	  return rd(p.first), rd(p.second);
+	}
+	template <size_t N = 0, typename T>
+	void rd_tuple(T &t) {
+	  if constexpr (N < std::tuple_size<T>::value) {
+	    auto &x = std::get<N>(t);
+	    rd(x);
+	    rd_tuple<N + 1>(t);
+	  }
+	}
+	template <class... T>
+	void rd(tuple<T...> &tpl) {
+	  rd_tuple(tpl);
+	}
+	 
+	template <size_t N = 0, typename T>
+	void rd(array<T, N> &x) {
+	  for (auto &d: x) rd(d);
+	}
+	template <class T>
+	void rd(vector<T> &x) {
+	  for (auto &d: x) rd(d);
+	}
+	 
+	void in() {}
+	template <class H, class... T>
+	void in(H &h, T &... t) {
+	  rd(h), in(t...);
+	}
+	 
+	void wt(const char c) {
+	  if (por == SZ) flush();
+	  obuf[por++] = c;
+	}
+	void wt(const string s) {
+	  for (char c: s) wt(c);
+	}
+	void wt(const char *s) {
+	  size_t len = strlen(s);
+	  for (size_t i = 0; i < len; i++) wt(s[i]);
+	}
+	 
+	template <typename T>
+	void wt_integer(T x) {
+	  if (por > SZ - 100) flush();
+	  if (x < 0) { obuf[por++] = '-', x = -x; }
+	  int outi;
+	  for (outi = 96; x >= 10000; outi -= 4) {
+	    memcpy(out + outi, pre.num[x % 10000], 4);
+	    x /= 10000;
+	  }
+	  if (x >= 1000) {
+	    memcpy(obuf + por, pre.num[x], 4);
+	    por += 4;
+	  } else if (x >= 100) {
+	    memcpy(obuf + por, pre.num[x] + 1, 3);
+	    por += 3;
+	  } else if (x >= 10) {
+	    int q = (x * 103) >> 10;
+	    obuf[por] = q | '0';
+	    obuf[por + 1] = (x - q * 10) | '0';
+	    por += 2;
+	  } else
+	    obuf[por++] = x | '0';
+	  memcpy(obuf + por, out + outi + 4, 96 - outi);
+	  por += 96 - outi;
+	}
+	template <typename T>
+	void wt_real(T x) {
+	  ostringstream oss;
+	  oss << fixed << setprecision(15) << double(x);
+	  string s = oss.str();
+	  wt(s);
+	}
+	 
+	inline void wt(int x) { wt_integer(x); }
+	inline void wt(long long x) { wt_integer(x); }
+	inline void wt(__int128 x) { wt_integer(x); }
+	inline void wt(unsigned int x) { wt_integer(x); }
+	inline void wt(unsigned long long x) { wt_integer(x); }
+	inline void wt(unsigned __int128 x) { wt_integer(x); }
+	inline void wt(double x) { wt_real(x); }
+	inline void wt(long double x) { wt_real(x); }
+	inline void wt(__float128 x) { wt_real(x); }
+	 
+	template <class T, class U>
+	void wt(const pair<T, U> val) {
+	  wt(val.first);
+	  wt(' ');
+	  wt(val.second);
+	}
+	
+	template <size_t N = 0, typename T>
+	void wt_tuple(const T t) {
+	  if constexpr (N < std::tuple_size<T>::value) {
+	    if constexpr (N > 0) { wt(' '); }
+	    const auto x = std::get<N>(t);
+	    wt(x);
+	    wt_tuple<N + 1>(t);
+	  }
+	}
+	template <class... T>
+	void wt(tuple<T...> tpl) {
+	  wt_tuple(tpl);
+	}
+	template <class T, size_t S>
+	void wt(const array<T, S> val) {
+	  auto n = (int)val.size();
+	  for (size_t i = 0; i < n; i++) {
+	    if (i) wt(' ');
+	    wt(val[i]);
+	  }
+	}
+	template <class T>
+	void wt(const vector<T> val) {
+	  auto n =(int)val.size();
+	  for (size_t i = 0; i < n; i++) {
+	    if (i) wt(' ');
+	    wt(val[i]);
+	  }
+	}
+	void print() { wt('\n'); }
+	template <class Head, class... Tail>
+	void print(Head &&head, Tail &&... tail) {
+	  wt(head);
+	  if (sizeof...(Tail)) wt(' ');
+	  print(forward<Tail>(tail)...);
+	}
+	// gcc expansion. called automaticall after main.
+	void __attribute__((destructor)) _d() { flush(); }
+	} // namespace fastio
+	using fastio::in;
+	using fastio::print;
+	using fastio::flush;
+	
+	//===================================CODE======================================================
+	$1
+snippet fastIO20 
+	// FastIO c++ 20 onwars has flipao eh?  for more check this blog https://judge.yosupo.jp/submission/21623
+	struct IOPre {
+	  static constexpr int TEN = 10, SZ = TEN * TEN * TEN * TEN;
+	  std::array<char, 4 * SZ> num;
+	  constexpr IOPre() : num{} {
+	    for (int i = 0; i < SZ; i++) {
+	      int n = i;
+	      for (int j = 3; j >= 0; j--) {
+	        num[i * 4 + j] = static_cast<char>(n % TEN + '0');
+	        n /= TEN;
+	      }
+	    }
+	  }
+	};
+	struct IO {
+	#if !HAVE_DECL_FREAD_UNLOCKED
+	#define fread_unlocked fread
+	#endif
+	#if !HAVE_DECL_FWRITE_UNLOCKED
+	#define fwrite_unlocked fwrite
+	#endif
+	  static constexpr int SZ = 1 << 17, LEN = 32, TEN = 10, HUNDRED = TEN * TEN,
+	                       THOUSAND = HUNDRED * TEN, TENTHOUSAND = THOUSAND * TEN,
+	                       MAGIC_MULTIPLY = 205, MAGIC_SHIFT = 11, MASK = 15,
+	                       TWELVE = 12, SIXTEEN = 16;
+	  static constexpr IOPre io_pre = {};
+	  std::array<char, SZ> input_buffer, output_buffer;
+	  int input_ptr_left, input_ptr_right, output_ptr_right;
+	 
+	  IO()
+	      : input_buffer{},
+	        output_buffer{},
+	        input_ptr_left{},
+	        input_ptr_right{},
+	        output_ptr_right{} {}
+	  IO(const IO&) = delete;
+	  IO(IO&&) = delete;
+	  IO& operator=(const IO&) = delete;
+	  IO& operator=(IO&&) = delete;
+	 
+	  ~IO() { flush(); }
+	 
+	  template <class T>
+	  struct is_char {
+	    static constexpr bool value = std::is_same_v<T, char>;
+	  };
+	 
+	  template <class T>
+	  struct is_bool {
+	    static constexpr bool value = std::is_same_v<T, bool>;
+	  };
+	 
+	  template <class T>
+	  struct is_string {
+	    static constexpr bool value =
+	        std::is_same_v<T, std::string> || std::is_same_v<T, const char*> ||
+	        std::is_same_v<T, char*> || std::is_same_v<std::decay_t<T>, char*>;
+	    ;
+	  };
+	 
+	  template <class T, class D = void>
+	  struct is_custom {
+	    static constexpr bool value = false;
+	  };
+	 
+	  template <class T>
+	  struct is_custom<T, std::void_t<typename T::internal_value_type>> {
+	    static constexpr bool value = true;
+	  };
+	 
+	  template <class T>
+	  struct is_default {
+	    static constexpr bool value = is_char<T>::value || is_bool<T>::value ||
+	                                  is_string<T>::value || std::is_integral_v<T>;
+	  };
+	 
+	  template <class T, class D = void>
+	  struct is_iterable {
+	    static constexpr bool value = false;
+	  };
+	 
+	  template <class T>
+	  struct is_iterable<
+	      T, typename std::void_t<decltype(std::begin(std::declval<T>()))>> {
+	    static constexpr bool value = true;
+	  };
+	 
+	  template <class T, class D = void, class E = void>
+	  struct is_applyable {
+	    static constexpr bool value = false;
+	  };
+	 
+	  template <class T>
+	  struct is_applyable<T, std::void_t<typename std::tuple_size<T>::type>,
+	                      std::void_t<decltype(std::get<0>(std::declval<T>()))>> {
+	    static constexpr bool value = true;
+	  };
+	 
+	  template <class T>
+	  static constexpr bool needs_newline = (is_iterable<T>::value ||
+	                                         is_applyable<T>::value) &&
+	                                        (!is_default<T>::value);
+	 
+	  template <typename T, typename U>
+	  struct any_needs_newline {
+	    static constexpr bool value = false;
+	  };
+	  template <typename T>
+	  struct any_needs_newline<T, std::index_sequence<>> {
+	    static constexpr bool value = false;
+	  };
+	  template <typename T, std::size_t I, std::size_t... Is>
+	  struct any_needs_newline<T, std::index_sequence<I, Is...>> {
+	    static constexpr bool value =
+	        needs_newline<decltype(std::get<I>(std::declval<T>()))> ||
+	        any_needs_newline<T, std::index_sequence<Is...>>::value;
+	  };
+	 
+	  inline void load() {
+	    memcpy(std::begin(input_buffer), std::begin(input_buffer) + input_ptr_left,
+	            input_ptr_right - input_ptr_left);
+	    input_ptr_right =
+	        input_ptr_right - input_ptr_left +
+	        static_cast<int>(fread_unlocked(
+	            std::begin(input_buffer) + input_ptr_right - input_ptr_left, 1,
+	            SZ - input_ptr_right + input_ptr_left, stdin));
+	    input_ptr_left = 0;
+	  }
+	 
+	  inline void read_char(char& c) {
+	    if (input_ptr_left + LEN > input_ptr_right) load();
+	    c = input_buffer[input_ptr_left++];
+	  }
+	  inline void read_string(std::string& x) {
+	    char c;
+	    while (read_char(c), c < '!') continue;
+	    x = c;
+	    while (read_char(c), c >= '!') x += c;
+	  }
+	  template <class T>
+	  inline std::enable_if_t<std::is_integral_v<T>, void> read_int(T& x) {
+	    if (input_ptr_left + LEN > input_ptr_right) load();
+	    char c = 0;
+	    do c = input_buffer[input_ptr_left++];
+	    while (c < '-');
+	    [[maybe_unused]] bool minus = false;
+	    if constexpr (std::is_signed<T>::value == true)
+	      if (c == '-') minus = true, c = input_buffer[input_ptr_left++];
+	    x = 0;
+	    while (c >= '0')
+	      x = x * TEN + (c & MASK), c = input_buffer[input_ptr_left++];
+	    if constexpr (std::is_signed<T>::value == true)
+	      if (minus) x = -x;
+	  }
+	 
+	  inline void skip_space() {
+	    if (input_ptr_left + LEN > input_ptr_right) load();
+	    while (input_buffer[input_ptr_left] <= ' ') input_ptr_left++;
+	  }
+	 
+	  inline void flush() {
+	    fwrite_unlocked(std::begin(output_buffer), 1, output_ptr_right, stdout);
+	    output_ptr_right = 0;
+	  }
+	 
+	  inline void write_char(char c) {
+	    if (output_ptr_right > SZ - LEN) flush();
+	    output_buffer[output_ptr_right++] = c;
+	  }
+	 
+	  inline void write_bool(bool b) {
+	    if (output_ptr_right > SZ - LEN) flush();
+	    output_buffer[output_ptr_right++] = b ? '1' : '0';
+	  }
+	 
+	  inline void write_string(const std::string& s) {
+	    for (auto x : s) write_char(x);
+	  }
+	 
+	  inline void write_string(const char* s) {
+	    while (*s) write_char(*s++);
+	  }
+	 
+	  inline void write_string(char* s) {
+	    while (*s) write_char(*s++);
+	  }
+	 
+	  template <typename T>
+	  inline std::enable_if_t<std::is_integral_v<T>, void> write_int(T x) {
+	    if (output_ptr_right > SZ - LEN) flush();
+	    if (!x) {
+	      output_buffer[output_ptr_right++] = '0';
+	      return;
+	    }
+	    if constexpr (std::is_signed<T>::value == true)
+	      if (x < 0) output_buffer[output_ptr_right++] = '-', x = -x;
+	    int i = TWELVE;
+	    std::array<char, SIXTEEN> buf{};
+	    while (x >= TENTHOUSAND) {
+	      memcpy(std::begin(buf) + i,
+	             std::begin(io_pre.num) + (x % TENTHOUSAND) * 4, 4);
+	      x /= TENTHOUSAND;
+	      i -= 4;
+	    }
+	    if (x < HUNDRED) {
+	      if (x < TEN) {
+	        output_buffer[output_ptr_right++] = static_cast<char>('0' + x);
+	      } else {
+	        std::uint32_t q =
+	            (static_cast<std::uint32_t>(x) * MAGIC_MULTIPLY) >> MAGIC_SHIFT;
+	        std::uint32_t r = static_cast<std::uint32_t>(x) - q * TEN;
+	        output_buffer[output_ptr_right] = static_cast<char>('0' + q);
+	        output_buffer[output_ptr_right + 1] = static_cast<char>('0' + r);
+	        output_ptr_right += 2;
+	      }
+	    } else {
+	      if (x < THOUSAND) {
+	        memcpy(std::begin(output_buffer) + output_ptr_right,
+	               std::begin(io_pre.num) + (x << 2) + 1, 3),
+	            output_ptr_right += 3;
+	      } else {
+	        memcpy(std::begin(output_buffer) + output_ptr_right,
+	               std::begin(io_pre.num) + (x << 2), 4),
+	            output_ptr_right += 4;
+	      }
+	    }
+	    memcpy(std::begin(output_buffer) + output_ptr_right,
+	           std::begin(buf) + i + 4, TWELVE - i);
+	    output_ptr_right += TWELVE - i;
+	  }
+	  template <typename T_>
+	  IO& operator<<(T_&& x) {
+	    using T =
+	        typename std::remove_cv<typename std::remove_reference<T_>::type>::type;
+	    static_assert(is_custom<T>::value or is_default<T>::value or
+	                  is_iterable<T>::value or is_applyable<T>::value);
+	    if constexpr (is_custom<T>::value) {
+	      write_int(x.get());
+	    } else if constexpr (is_default<T>::value) {
+	      if constexpr (is_bool<T>::value) {
+	        write_bool(x);
+	      } else if constexpr (is_string<T>::value) {
+	        write_string(x);
+	      } else if constexpr (is_char<T>::value) {
+	        write_char(x);
+	      } else if constexpr (std::is_integral_v<T>) {
+	        write_int(x);
+	      }
+	    } else if constexpr (is_iterable<T>::value) {
+	      // strings are immune
+	      using E = decltype(*std::begin(x));
+	      constexpr char sep = needs_newline<E> ? '\n' : ' ';
+	      int i = 0;
+	      for (const auto& y : x) {
+	        if (i++) write_char(sep);
+	        operator<<(y);
+	      }
+	    } else if constexpr (is_applyable<T>::value) {
+	      // strings are immune
+	      constexpr char sep =
+	          (any_needs_newline<
+	              T, std::make_index_sequence<std::tuple_size_v<T>>>::value)
+	              ? '\n'
+	              : ' ';
+	      int i = 0;
+	      std::apply(
+	          [this, &sep, &i](auto const&... y) {
+	            (((i++ ? write_char(sep) : void()), this->operator<<(y)), ...);
+	          },
+	          x);
+	    }
+	    return *this;
+	  }
+	  template <typename T>
+	  IO& operator>>(T& x) {
+	    static_assert(is_custom<T>::value or is_default<T>::value or
+	                  is_iterable<T>::value or is_applyable<T>::value);
+	    static_assert(!is_bool<T>::value);
+	    if constexpr (is_custom<T>::value) {
+	      typename T::internal_value_type y;
+	      read_int(y);
+	      x = y;
+	    } else if constexpr (is_default<T>::value) {
+	      if constexpr (is_string<T>::value) {
+	        read_string(x);
+	      } else if constexpr (is_char<T>::value) {
+	        read_char(x);
+	      } else if constexpr (std::is_integral_v<T>) {
+	        read_int(x);
+	      }
+	    } else if constexpr (is_iterable<T>::value) {
+	      for (auto& y : x) operator>>(y);
+	    } else if constexpr (is_applyable<T>::value) {
+	      std::apply([this](auto&... y) { ((this->operator>>(y)), ...); }, x);
+	    }
+	    return *this;
+	  }
+	 
+	  IO* tie(std::nullptr_t) { return this; }
+	  void sync_with_stdio(bool) {}
+	};
+	 
+	namespace std {
+	IO io;
+	}  // namespace std
+	#define cin io
+	#define cout io
+	$1
+#-------------------------------------------------------------------------------------------------------------------------
+#                                       ALGORITMOS Y ESTRUCTURAS
+#GRAPHS
+snippet Dfs 
+	const int N=1e5+7;
+	std::vector<int> G[N];
+	bool vis[N];
+	void Dfs(int v){
+		vis[v]=1;
+		for(auto &&u:G[v]){
+			if(!vis[u]){
+				Dfs(u);
+			}
+		}
+	}
+snippet Dfs_Lambda 
+	std::vector<std::vector<int>> G(n+1);
+	std::vector<bool> vis(n+1,0);
+	auto Dfs=[&vis,&G](auto&& self,int v)->void{
+		vis[v]=1;
+		for(auto&& u:G[v]){
+			if(!vis[u]){
+				self(self,u);
+			}
+		}
+	};
+snippet Bfs 
+	const int N=1e5+7;
+	std::vector<int> G[N];
+	int d[N],p[N];
+	bool vis[N];
+	template<typename T>
+	    void Bfs(T s){
+	        std::deque<T> q;
+	        q.emplace_back(s);
+	        vis[s]=1;
+	        p[s]=-1;
+	        while(!q.empty()){
+	            T v=q.front();
+	            q.pop_front();
+	            for(auto u:G[v]){
+	                if(!vis[u]){
+	                    vis[u]=1;
+	                    d[u]=d[v]+1;
+	                    p[u]=v;
+	                    q.emplace_back(u);
+	                }
+	            }
+	        }
+	    }
+	/*
+	    //imprimir el camino mas corto
+	    int s,f; cin>>s>>f;
+	    s--,f--;
+	    bfs(s);
+	    vi a;
+	    for(int i=f;i!=-1;i=p[i]) a.emplace_back(i);
+	    for(int i=sz(a)-1;~i;--i) cout<<a[i]<<" ";
+	*/
+snippet Bfs_Lambda 
+	std::vector<std::vector<int>> G(n+1);
+	std::vector<bool> vis(n+1);
+	std::vector<int> p(n+1),d(n+1);
+	auto Bfs=[&](int s)->void{
+	    std::queue<int> q;
+	    q.emplace(s);
+	    vis[s]=1;
+	    p[s]=-1;
+	    while(!q.empty()){
+	        int v=q.front();
+	        q.pop();
+	        for(auto u:G[v]){
+	            if(!vis[u]){
+	                vis[u]=1;
+	                d[u]=d[v]+1;
+	                p[u]=v;
+	                q.emplace(u);
+	            }
+	        }
+	    }
+	};
+snippet Dijkstra "devuleve padres y distacias"
+    //Depende of INF 
+    template<typename T,typename GT>
+    std::pair<std::vector<T>,std::vector<int>> Dijkstra(std::vector<std::vector<std::pair<GT,GT>>>& G,int s){
+        auto N=(int)G.size();
+        std::vector<T> dist(N,INF<T>);
+        std::vector<int> par(N,-1);
+        std::priority_queue<std::pair<T,int>,std::vector<std::pair<T,int>>, std::greater<std::pair<T,int>>> q;
+        dist[s]=0;
+        q.emplace(0,s);
+        while(!q.empty()){
+            auto[dv,v]=q.top();
+            q.pop();
+            if(dv>dist[v]) continue;
+            for(auto u:G[v]){
+                auto [to,cost]=u;
+                if(dist[v]+cost<dist[to]){
+                    dist[to]=dist[v]+cost;
+                    par[to]=v;
+                    q.emplace(dist[to],to);
+                }
+            }      
+        }
+        return{dist,par};
+    } 
+    std::vector<int> camino(std::vector<int> &p,int t){
+        std::vector<int> v={t};
+        while (p[v.back()] != -1) v.pb(p[v.back()]);
+        reverse(all(v));
+        return v;
+    }
+    //declaracion:
+    //auto [dist,par]=Dijkstra<type>(G,1);
+    //if(dist[n]==INF) -1
+    //auto ans=camino(p,n);
+
+#-------------------------------------------------------------------------------------------------------------------------
+#MATH
+snippet UTIL_MATH 
+    inline namespace UTIL_MATH{
+        //raiz estable
+        template <typename T> inline T sqrt_(T n){
+            T x=sqrtl(n)+1;
+            while(x*x>n) x--;
+            return x;
+        }
+        //redondeo a piso 
+        template <typename T>
+        T floor(T a, T b) {
+          return a / b - (a % b && (a ^ b) < 0);
+        }
+        //redondeo a techo 
+        template <typename T>
+        T ceil(T x, T y) {
+          return floor(x + y - 1, y);
+        }
+        //maximo comun divisor
+        template <typename T>
+        T lcm(T a, T b) {
+            return (a / std::gcd(a, b)) * b;
+        }
+    
+    } //namespace UTIL_MATH
+    $1
+
+snippet Modular_Interger "integral modular directly"
+    inline namespace MOD_INT{
+    template<typename T,T MOD>
+    requires std::unsigned_integral<T>
+    class Modular_Integer{
+    public:
+        using mod = Modular_Integer;
+        constexpr Modular_Integer(): value{0} {}
+        constexpr Modular_Integer(T v) : value(norm(v % T{MOD})){}
+        constexpr static T norm(T x) {
+            if ((x >> (8 * sizeof(T) - 1) & 1) == 1) {
+                x += MOD;  
+            }
+            if (x >= MOD) {
+                x -= MOD;
+            }
+            return x;
+        }
+        constexpr T val(){
+            return value;
+        }
+        constexpr mod& operator+=(const mod& other) & {
+            value = norm(value + other.value);
+            return *this;
+        }
+        constexpr mod& operator-=(const mod& other) & {
+            value = norm(value - other.value);
+            return *this;
+        }
+        constexpr mod& operator*=(const mod& other) & {
+            value = value * other.value % MOD;
+            return *this;
+        }
+        constexpr mod& operator/=(const mod& other) & {
+            return *this *= other.inv(); 
+        }
+        constexpr mod operator-() const {
+            mod res;
+            res.value = norm(-value);
+            return res;
+        }
+        constexpr mod inv() const {
+            return binpow(MOD - 2);
+        }
+        constexpr mod binpow(i64 exp) const {
+            mod result = 1;
+            mod base = value;
+            while (exp > 0) {
+                if (exp & 1) result *= base;
+                base *= base;
+                exp>>=1;
+            }
+            return result;
+        }
+        friend constexpr mod operator+(mod a, const mod& b) { return a += b; }
+        friend constexpr mod operator-(mod a, const mod& b) { return a -= b; }
+        friend constexpr mod operator*(mod a, const mod& b) { return a *= b; }
+        friend constexpr mod operator/(mod a, const mod& b) { return a /= b; }
+        friend constexpr bool operator==(mod a, mod& b) { return a.value == b.value;}
+        friend constexpr bool operator!=(mod a, mod& b) { return a.value != b.value;}
+        friend constexpr bool operator<(mod a, mod& b) { return a.value < b.value;}
+        friend constexpr bool operator>(mod a, mod& b) { return a.value > b.value;}
+        // output
+        friend constexpr std::ostream& operator<<(std::ostream& os, const mod& m) {
+            return os << m.value;
+        }
+        // input
+        friend constexpr std::istream& operator>>(std::istream& is, mod& m) {
+            T temp;
+            is >> temp;
+            m.value = norm(temp % MOD);
+            return is;
+        }
+    private: 
+        T value;
+    };
+    template<uint32_t M> using Mint_32 = Modular_Integer<uint32_t,M>;
+    template<uint64_t M> using Mint_64 = Modular_Integer<uint64_t,M>;
+    constexpr uint64_t MOD = static_cast<i64>(1e9+7);
+    using Mint  = Mint_64<MOD>;
+    }; // namespace MOD_INT
+    $1
+snippet Modular_Integer_basic
+    constexpr u64 MOD = 1'000'000'007;
+    // BEGIN Modular_Integer_basic
+    inline namespace Modular_Simple_Base{
+    #define Z inline constexpr
+    Z u64 add(const u64& a, const u64& b,const u64& mod = MOD) { return (a + b) % mod; }
+    Z u64 sub(const u64& a,const u64& b,const u64& mod = MOD) { return (a - b + mod) % mod; }
+    Z u64 mul(const u64& a, const u64& b,const u64& mod = MOD) { return (a * b) % mod; }
+    Z u64 binpow(u64 a, u64 b, u64 m = MOD) {
+        a %= m;
+        u64 res = 1;
+        while (b > 0) {
+            if (b & 1) res = mul(res,b,m);
+            a = mul(a,a,m);
+            b >>= 1;
+        }
+        return res;
+    }
+    #undef Z
+    };
+    // END Modular_Integer_basic
+    $1
+snippet binpow 
+	template<typename T>
+	T binpow(T a, T b) {
+	    T res=1;
+	    while(b>0) {
+	        if(b&1) res = res * a;
+	        a=a*a;
+	        b>>=1;
+	    }
+	    return res;
+	}
+snippet binpowMOD 
+	template<typename T>
+	T binpow(T a, T b, T m) {
+	    a %= m;
+	    T res = 1;
+	    while (b > 0) {
+	        if (b & 1) res=res*a%m;
+	        a = a * a % m;
+	        b >>= 1;
+	    }
+	    return res;
+	}
+snippet NCK 
+	template<typename T>
+	struct NcK{
+	    T N,MOD;
+	    V<T> F;
+	    explicit NcK(T n, T mod) : N(n), MOD(mod){
+	        F.assign(N+1,1);
+	        F[0]=1;
+	        for(auto i=1;i<=N;i++){
+	            F[i]=1LL*F[i-1]*i%MOD;
+	        }
+	    }
+	    constexpr T binpow(T a, T b, T m) {
+	        a %= m;
+	        T res = 1;
+	        while (b > 0) {
+	            if (b & 1) res=res*a%m;
+	            a = a * a % m;
+	            b >>= 1;
+	        }
+	        return res;
+	    }
+	    constexpr T inv(T a){
+	        return binpow(a,MOD-2,MOD);
+	    }
+	    constexpr T nCk(T n, T k){
+	        T numerator=F[n];
+	        T denominator=1LL*F[k]*F[n-k]%MOD;
+	        return 1LL*numerator*inv(denominator)%MOD;
+	    }
+	};
+snippet NCK_Mint 
+    // Depends of Modular_Integer 
+    class NcK{   
+        public:  
+        T N;
+        std::vector<Mint> Factorial;
+        explicit NcK(T n) : N(n){
+            Factorial.assign(N + 1, 1);
+            Factorial[0] = 1;
+            for(auto i = 1; i <= N; i++){
+                Factorial[i] = Factorial[i - 1] * i;
+            }
+        }
+        Mint binom(T n, T k) noexcept{
+            if(k > n) return 0;
+            Mint numerator = Factorial[n];
+            Mint denominator= Factorial[k] * Factorial[n - k];
+            return numerator / denominator ;
+        }
+    };
+snippet cnt_table 
+	//table:
+	template<typename A ,typename T>
+	std::vector<A> cnt_table(std::vector<T>& vec,int n,bool ok=1){
+	    std::vector<T> c(ok?n+1:n);
+	    for(auto&& x:vec){
+	        if(!ok) x--;
+	        c[x]++;
+	    }
+	    return c;
+	}
+	template<typename A>
+	std::vector<A> cnt_table(std::string& s,bool ok=1){
+	    // 0 mayus 1 minus
+	    std::vector<A> c(26,0);
+	    for(auto &&x:s){
+	        ok ? c[x-'a']++ : c[x-'A']++;
+	    }
+	    return c;
+	}
+snippet criba "simple criba"
+    constexpr int N = 1e6 + 7; 
+    const size_t TS = (N / std::log(N)) * 2;
+    std::vector<int> primes; 
+    std::bitset<N> used;
+    void criba(){
+        primes.reserve(TS);
+        used[0] = used[1] = true; 
+        const int R = int(std::sqrt(N)); 
+        for(int i{2}; i<=R;i++){
+            if(not used[i]){
+                for(i64 j{i * i};j<=N;j+=i){
+                    used[j] = true;
+                }
+            }
+        }
+        for(int i{2};i<N;i++){
+            if(not used[i]) 
+                primes.emplace_back(i);
+        }
+    }
+snippet fast_cribe "ULTRA fast" 
+    template <int N, bool compute_primes = false>
+    struct fast_sieve {
+        std::bitset<N / 3 + 1> sieve;
+        std::vector<int> primes;
+        inline bool is_prime(int n) {
+            return n == 2 || n == 3 || ((n & 1) && (n % 3) && (sieve[n / 3]));
+        }
+        void fill_sieve() {
+            sieve.set();
+            for (int p = 5, d = 4, i = 1, sqn = int(std::sqrt(N)); p <= sqn;
+                 p += d = 6 - d, i++) {
+                if (!sieve[i]) continue;
+                for (int q = p * p / 3, r = d * p / 3 + (d * p % 3 == 2), s = 2 * p,
+                         qe = (int)sieve.size();
+                     q < qe; q += r = s - r)
+                    sieve[q] = 0;
+            }
+        }
+        std::vector<int> get_primes() {
+            std::vector<int> ret{2, 3};
+            for (int p = 5, d = 4, i = 1; p <= N; p += d = 6 - d, i++)
+                if (sieve[i]) ret.push_back(p);
+            while (!ret.empty() && ret.back() > N) ret.pop_back();
+            return ret;
+        }
+        fast_sieve() {
+            fill_sieve();
+            if (compute_primes) primes = get_primes();
+        }
+    };
+    const int N = 1000000 + 1;
+    fast_sieve<N,true> sv; // true or false for primes 
+snippet PRIMES "criba + criba with range" 
+    inline namespace PRIMES{
+    //Criba Lineal O(N);
+    std::vector<int> criba_lineal(const int N = (int)1e6){
+        const int LIM = static_cast<int>(1e6 + 7); 
+        static std::vector<int> primes;
+        static std::array<bool,LIM> vis;
+        for (int i = 2; i < N; ++i) {
+            if (!vis[i]) primes.push_back (i);
+            for (int j = 0; j < (int)primes.size() && (i * primes[j]*1LL) < N; ++j) {
+                vis[i * primes[j]] = 1;
+                if (i % primes[j] == 0) break;
+            }
+        }
+        return primes;
+    }
+    // decente hasta N = 1e9 -> sqrt(N) 
+    template <typename T = i64>
+    std::vector<T> primetable(i64 LIM) {
+        ++LIM;
+        const int S = 32768;
+        static int done = 2;
+        static std::vector<T> primes = {2}, sieve(S + 1);
+     
+        if (done < LIM) {
+            done = LIM;
+     
+            primes = {2}, sieve.assign(S + 1, 0);
+            const int R = LIM / 2;
+            primes.reserve(int(LIM / std::log(LIM) * 1.1));
+            std::vector<std::pair<int, int>> cp;
+            for (int i = 3; i <= S; i += 2) {
+                if (!sieve[i]) {
+                    cp.emplace_back(i, i * i / 2);
+                    for (int j = i * i; j <= S; j += 2 * i) sieve[j] = 1;
+                }
+            }
+            for (int L = 1; L <= R; L += S) {
+                std::array<bool, S> block{};
+                for (auto& [p, idx]: cp)
+                    for (int i = idx; i < S + L; idx = (i += p)) 
+                        block[i - L] = 1;
+                for(int i  = 0;i<std::min(S,R - L);i++)
+                    if (!block[i]) primes.emplace_back((L + i) * 2 + 1);
+            }
+        }
+        int k = std::lower_bound(begin(primes),end(primes),LIM + 1) - begin(primes);
+        return {primes.begin(), primes.begin() + k};
+    }
+    // least prime factor table 
+    std::vector<int> lpf_table(const int N = 1e6 + 1){
+        const int R = static_cast<int>(std::sqrt(N)); 
+        std::vector<int> prime(N); 
+        for(int i = 1; i <= N ; i++){
+        	prime[i] = i;
+        }
+        for(int i = 2; i <= R; i++){
+            if(prime[i] == i){
+                for(int j = i * i; j <= N; j += i){
+                    if(prime[j] == j) prime[j] = i;
+                }
+            }
+        }
+        return prime;
+    }
+
+    // precomputa mask(x) que si mask(x) == mask(y) -> x * y forman cuadrado perfecto
+    std::vector<int> cua_table(const int N){
+        const int R = static_cast<int>(std::sqrt(N)) + 1;
+        std::vector<int> M(N + 100);
+        for(int i = 0;i<=N;i++) M[i] = i;
+        for(int i = 2;i<=R;i++){
+            int cua = i * i;
+            for(int j = cua;j <=N;j+=cua){
+                while(M[j] % cua  == 0){
+                    M[j] /= cua;
+                }
+            }
+        }
+        return M;
+    }
+    // (R - L  + 1) <= 1e6 -> NMAX = 1e12
+    std::vector<i64> range_prime(i64 L, i64  R){
+        const int RA = static_cast<int>(std::sqrt(R)); 
+        std::vector<i64> prime(R - L + 1),ans;
+        for(i64 i = L; i <= R; i++) prime[i - L] = 1;
+        for(i64 i = 2; i <= RA; i++){
+        	for(i64 j=std::max(i*i,(L+i-1)/i*i);j<=R;j+=i){
+        		prime[j - L] = 0;
+        	}
+        }
+        for(i64 dos = 2,i = std::max(dos, L); i <= R; i++){
+        	if(prime[i - L]) ans.emplace_back(i);
+        }
+        return ans;
+    }
+    
+    // N <= 1e6 for cribe 
+    std::vector<std::pair<i64,int>> factor(const std::vector<int>& primes,i64 n){
+        std::vector<std::pair<i64,int>> res; 
+        for(auto&& p: primes){
+            if(p * p > n) break; 
+            int exp = 0;
+            while(n % p == 0){
+                ++exp; 
+                n /= p;
+            }
+            if(exp) res.emplace_back(p,exp); 
+        }
+        if(n > 1) res.emplace_back(n,1);
+        return res;
+    }
+    // N >1e6
+    std::vector<std::pair<i64,int>> factor_by_lpf(const std::vector<int>& lpf,i64 n){
+        std::vector<std::pair<i64,int>> res; 
+        while(n > 1){
+            int p = lpf[n]; 
+            int e = 0; 
+            while(n % p == 0){
+                ++e; 
+                n /= p; 
+            }
+            res.emplace_back(p,e);
+        }
+        //if(n > 1) res.emplace_back(n,1);
+        return res;
+    }
+    } //PRIMES
+    $1
+snippet Pollard_Rho "factorization rapida de numeros grandes" 
+    // incluye test de primalidad millet rabin 
+    inline namespace POLLAR_RHO{
+    // Random number generator
+    const uint64_t SEED = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::mt19937_64 rng(SEED);
+    template<typename T>
+    inline T rnd(T low, T high) {
+        return std::uniform_int_distribution<T>{low, high}(rng);
+    }
+    struct m64 { //Mongotmery Modular 
+        using u128 = __uint128_t;
+        inline static u64 m, r, n2; // r * m = -1 (mod 1<<64), n2 = 1<<128 (mod m)
+        static void set_mod(u64 m) {
+            assert((m & 1) == 1);
+            m64::m = m;
+            n2 = -u128(m) % m;
+            r = m;
+            for(int i = 0 ; i<5 ; i++) r *= 2 - m * r;
+            r = -r;
+            assert(r * m == -1ull);
+        }
+        static u64 reduce(u128 b) { return (b + u128(u64(b) * r) * m) >> 64; }
+        u64 x;
+        m64() : x(0) {}
+        m64(u64 x) : x(reduce(u128(x) * n2)){};
+        u64 val() const {
+          u64 y = reduce(x);
+          return y >= m ? y - m : y;
+        }
+        m64 &operator+=(m64 y) {
+          x += y.x - (m << 1);
+          x = (i64(x) < 0 ? x + (m << 1) : x);
+          return *this;
+        }
+        m64 &operator-=(m64 y) {
+          x -= y.x;
+          x = (i64(x) < 0 ? x + (m << 1) : x);
+          return *this;
+        }
+        m64 &operator*=(m64 y) {
+          x = reduce(u128(x) * y.x);
+          return *this;
+        }
+        m64 operator+(m64 y) const { return m64(*this) += y; }
+        m64 operator-(m64 y) const { return m64(*this) -= y; }
+        m64 operator*(m64 y) const { return m64(*this) *= y; }
+        bool operator==(m64 y) const {
+          return (x >= m ? x - m : x) == (y.x >= m ? y.x - m : y.x);
+        }
+        bool operator!=(m64 y) const { return not operator==(y); }
+        m64 pow(u64 n) const {
+            m64 y = 1, z = *this;
+            for (; n; n >>= 1, z *= z)
+                if (n & 1) y *= z;
+            return y;
+        }
+    };
+    bool primetest(const uint64_t x) { //Miller rabin 
+        using u64 = uint64_t;
+        if (x == 2 or x == 3 or x == 5 or x == 7) return true;
+        if (x % 2 == 0 or x % 3 == 0 or x % 5 == 0 or x % 7 == 0) return false;
+        if (x < 121) return x > 1;
+        const u64 d = (x - 1) >> __builtin_ctzll(x - 1);
+        m64::set_mod(x);
+        const m64 one(1), minus_one(x - 1);
+        auto ok = [&](u64 a) {
+            auto y = m64(a).pow(d);
+            u64 t = d;
+            while (y != one and y != minus_one and t != x - 1) y *= y, t <<= 1;
+            if (y != minus_one and t % 2 == 0) return false;
+            return true;
+        };
+        if (x < (1ull << 32)) {
+            for (u64 a: {2, 7, 61})
+                if (not ok(a)) return false;
+        } else {
+            for (u64 a: {2, 325, 9375, 28178, 450775, 9780504, 1795265022}) {
+                if (x <= a) return true;
+                if (not ok(a)) return false;
+            }
+        }
+        return true;
+    }
+    i64 rho(i64 n, i64 c) {
+        m64::set_mod(n);
+        assert(n > 1);
+        const m64 cc(c);
+        auto f = [&](m64 x) { return x * x + cc; };
+        m64 x = 1, y = 2, z = 1, q = 1;
+        i64 g = 1;
+        const i64 m = 1LL << (std::__lg(n) / 5); // ?
+        for (i64 r = 1; g == 1; r <<= 1) {
+            x = y;
+            for(int _= 0;_<r;_++)  y = f(y);
+            for (i64 k = 0; k < r and g == 1; k += m) {
+                z = y;
+                for(int _=0;_<std::min(m,r-k);_++) y = f(y), q *= x - y;
+                g = std::gcd(q.val(), n);
+            }
+        }
+        if (g == n) do {
+            z = f(z);
+            g = std::gcd((x - z).val(), n);
+        }while (g == 1);
+        return g;
+    }
+     
+    i64 find_prime_factor(i64 n) {
+        assert(n > 1);
+        if (primetest(n)) return n;
+        for(int i= 0; i<100; i++) {
+          i64 m = rho(n, rnd<i64>(0,n));
+          if (primetest(m)) return m;
+          n = m;
+        }
+        return -1;
+    }
+    std::vector<std::pair<i64, int>> factor(i64 n) {
+        assert(n >= 1);
+        std::vector<std::pair<i64, int>> pf;
+        for(int p = 2;p<100;p++){
+            if (p * p > n) break;
+            if (n % p == 0) {
+              i64 e = 0;
+              do { n /= p, e += 1; } while (n % p == 0);
+              pf.emplace_back(p, e);
+            }
+        }
+        while (n > 1) {
+          i64 p = find_prime_factor(n);
+          i64 e = 0;
+          do { n /= p, e += 1; } while (n % p == 0);
+          pf.emplace_back(p, e);
+        }
+        std::sort(begin(pf),end(pf));
+        return pf;
+    }
+    //sum of divisores 
+    } //POLLAR_RHO
+    $1
+snippet DIVISORES "divisores de todos los tipos"    
+    inline namespace DIVISORES {
+    //precomputacion de cant de divs 
+    std::vector<int> cribe_divisors(const int N){
+        static std::vector<int> D(N + 1,0); 
+        for(int i = 1;i<=N;i++){
+            for(int j = i;j<=N;j+=i){
+                ++D[j];
+            }
+        }
+        return D;
+    }
+    //simple divs in O(sqrt(N));
+    template<typename T> //sorted
+    std::vector<T> divisors(T n){
+        std::vector<T> res = {1}; 
+        for(int i = 2; i*i <= n;i++){
+            if(n%i == 0){
+                res.emplace_back(i); 
+                if(i != n/i) res.emplace_back(n/i); 
+            }
+        }
+        res.emplace_back(n);
+        std::sort(begin(res),end(res));
+        return res;
+    }
+    //atraves de factores primos 
+    template<typename T> 
+    std::vector<T> divisors_by_pf(const std::vector<std::pair<T,int>>& fact){
+        std::vector<T> res={1}; 
+        for(auto&& [p,e]:fact){
+            int tam = sz(res); 
+            i64 pp = 1; 
+            for(int i = 1;i<=e;i++){
+                pp *= p; 
+                for(int j = 0;j<tam;j++){
+                    res.emplace_back(res[j] * pp);
+                }
+            }
+        }
+        return res;
+    }
+    //suma de divisores atraves de factores primos
+    template<typename T>
+    i64 sum_divs(const std::vector<std::pair<T,int>>& fact){
+        i64 ans = 1; 
+        for(auto&&[p,exp] : fact){
+            i64 sum = 0, pot = 1; 
+            for(int i = 0;i<=exp; i++){
+                sum += pot; 
+                pot *= p; 
+            }
+            ans *= sum; 
+        }
+        return ans; 
+    }
+    template<typename T>
+    int cnt_divs(const std::vector<std::pair<T,int>>& fact){
+        int res = 1; 
+        for(auto &&[p,e]:fact){
+            res *= (e + 1);
+        }
+        return res;
+    }
+    } // DIVISORES
+    $1
+#DATA_STRUCTURES   
+# -- Monoides
+snippet Monoide_Sum "suma" 
+    template<typename X>
+    struct Monoid_Suma{
+        static constexpr X sum(const X& x ,const X& y) noexcept{ return x + y; }
+        static constexpr X neutral(){ return X(0); }
+    };
+    $1
+
+snippet Monoide_Mul "multiplicacion"
+    template<typename X>
+    struct Monoid_Mul{
+        static constexpr X mul(const X& x ,const X& y) noexcept{ return x * y; }
+        static constexpr X inverso(const X &x) noexcept { return X(1) / x; }
+        static constexpr X one(){ return X(1); }
+    };
+    $1
+
+snippet Monoide_Max "maximo"
+    template<typename X>
+    struct Monoid_Max{
+        static constexpr X max(const X& x ,const X& y) noexcept{ return std::max<X>(x, y); }
+        static constexpr X zero(){ return X(0); }
+        //depende de INF 
+        static constexpr X inf(){ return X(-INF<X>); }
+    };
+    $1
+
+snippet Monoide_Min "minimo" 
+    template<typename X>
+    struct Monoid_Min{
+        static constexpr X min(const X& x ,const X& y) noexcept{ return std::min<X>(x, y); }
+        static constexpr X zero(){ return X(0); }
+        //depende de INF 
+        static constexpr X inf(){ return X(INF<X>); }
+    };
+    $1
+
+snippet Monoide_Gcd "gcd"
+    template<typename X>
+    struct Monoid_Gcd{
+        static constexpr X gcd(const X& x ,const X& y) noexcept{ return std::gcd<X>(x, y); }
+        static constexpr X zero(){ return X(0); }
+    };
+    $1
+
+snippet DSU 
+    struct DSU {
+        std::vector<int> fa, siz;
+        DSU() {}
+        DSU(int n) {
+            init(n);
+        }
+        void init(int n) {
+            fa.resize(n);
+            std::iota(begin(fa),end(fa),0);
+            //sum -> iota 
+            siz.assign(n, 1);
+        }
+        int find(int x) {
+            while (x != fa[x]) {
+                x = fa[x] = fa[fa[x]];
+            }
+            return x;
+        }
+        bool same(int x, int y) {
+            return find(x) == find(y);
+        }
+        bool unite(int x, int y) {
+            x = find(x);
+            y = find(y);
+            if (x == y) return false;
+            if(siz[x] < siz[y]) std::swap(x,y);
+            siz[x] += siz[y];
+            // sum[x]+= sum[y];
+            fa[y] = x;
+            return true;
+        }
+        int size(int x) {
+            return siz[find(x)];
+        }
+    };
+    $1
+snippet BINARY_SEARCH 
+    template <typename T,class F>
+    //                     fun , l=-1 | r = INF
+    T binary_search(const F& fun, T l,T r,){
+        T res = -1; 
+        while(std::abs(l - r) > 1){
+            T mid = (l + r) / 2;
+            if(fun(mid)){
+                r = mid;  //ans 
+                res = mid; 
+            }else{
+                l = mid; //-1
+            }
+        }
+        return res;
+    }
+
+snippet FenwickTree "Árbol Binario Indexado"
+    template <typename T>
+    class BIT{
+    public:
+        int N;
+        std::vector<T> data;
+        BIT() = default;
+        BIT(int size) { init(size); }
+        void init(int size) {
+            N = size + 2;
+            data.assign(N + 1, {});
+        }
+        // get sum of [0,k]
+        T query(int k) const {
+            if (k < 0) return T{};  // return 0 if k < 0
+            T ret{};
+            for (++k; k > 0; k -= k & -k) ret += data[k];
+            return ret;
+        }
+        // getsum of [l,r]
+        inline T query(int l, int r) const { return query(r) - query(l - 1); }
+        // get value of k use -> bit[k]
+        // sirve para corregir la adicion en pos ->add(pos,val - bit[pos]);
+        //(usar cuando es seteo y no adiccion)
+        inline T operator[](int k) const { return query(k) - query(k - 1); }
+        // data[k] += x
+        void update(int k, T x) {
+          for (++k; k < N; k += k & -k) data[k] += x;
+        }
+        // range add x to [l,r]
+        void update_range(int l, int r, T x) {
+          update(l, x);
+          update(r + 1, -x);
+        }
+        // index for sum(i) >= w
+        int lower_bound(T w) {
+            if (w <= 0) return 0;
+            int x = 0;
+            int lg = static_cast<int>(std::log2(N));
+            for (int k = 1 << lg; k; k >>= 1) {
+              if (x + k <= N - 1 && data[x + k] < w) {
+                w -= data[x + k];
+                x += k;
+              }
+            }
+            return x;
+        }
+        // index for  sum(i) > w
+        int upper_bound(T w) {
+            if (w < 0) return 0;
+            int x = 0;
+            int lg = static_cast<int>(std::log2(N));
+            for (int k = 1 << lg; k; k >>= 1) {
+              if (x + k <= N - 1 && data[x + k] <= w) {
+                w -= data[x + k];
+                x += k;
+              }
+            }
+            return x;
+        }
+    };
+    $1
+snippet sparce_table "tabla dispersa"
+	struct SparseTable {
+	    int n;
+	    vector<vector<int>> st;
+	    SparseTable(const vector<int>& arr) {
+	        n =(int)arr.size();
+	        int logn = 32 - __builtin_clz(n);
+	        st.assign(n, vector<int>(logn));
+	        for (int i = 0; i < n; i++) {
+	            st[i][0] = arr[i];
+	        }
+	        for (int j = 1; (1 << j) <= n; j++) {
+	            for (int i = 0; i + (1 << j) <= n; i++) {
+	                st[i][j] = min(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+	            }
+	        }
+	    }
+	    int query(int l, int r) {
+	        int j = 31 - __builtin_clz(r - l + 1);
+	        return min(st[l][j], st[r - (1 << j) + 1][j]);
+	    }
+	};
+
+snippet SegmentTree_Base
+    //SegmentTree_Base 
+    template<class Info>
+    class SegTree{ 
+    public: 
+        using inf = Info;
+        using T = typename inf::Type;
+        using TP = typename inf::Type_pos;
+        #define left node << 1 
+        #define right node << 1 | 1 
+        // --------------- datos---------------------
+        std::vector<Info> Tree;
+        TP log,size;
+        // ------------------------------------------
+        explicit SegTree() : size(TP(0)) {}
+        explicit SegTree(TP tam) : size(tam) {
+            log = 1;
+            while((1<<log) < size) ++log;
+            size = 1<<log;
+            Tree.assign(size<<1,{inf::neutral()});
+        }
+        explicit SegTree(std::vector<T> &ar){
+            size = sz(ar);    
+            log = 1;
+            while((1<<log)<size) ++log;
+            size = 1<<log;
+            Tree.assign(size<<1,{inf::neutral()});
+            init(ar);
+        }
+        void set(int k, Info x) { Tree[k + size] = x; }
+    
+        Info &operator[](const TP &pos) { return Tree[pos + size]; }
+    
+        inline constexpr void modify(T node){
+            Tree[node] = inf::Merge(Tree[left],Tree[right]);
+        }
+    
+        void init(const std::vector<T> &ar){
+            int tam = (int)ar.size();
+            for(auto i = 0; i<tam ; i++) Tree[size + i]={
+                ar[i]
+            }; // cantidad de operaciones
+            for(int i = size - 1 ; i ; i--) modify(i);
+        }
+    
+        void update(TP node, TP nl, TP nr, TP pos,T v) {
+            if(nl > pos || nr < pos) return;
+            if(nr==nl) {
+                Tree[node] = {v}; //asignacion 
+            } 
+            else {
+                T mid = (nl + nr) >> 1;
+                if(pos <= mid) update(left, nl, mid, pos, v);
+                else update(right, mid + 1, nr, pos, v);
+                modify(node);
+            }
+        }
+    
+        void update(TP pos ,TP val){
+            update(1, 0, size-1, pos, val);
+        }
+    
+        Info query(TP node, TP nl, TP nr, TP ql, TP qr) {
+            if (ql <= nl && nr <= qr)  return Tree[node];
+            TP mid = (nl + nr) >> 1;
+            if (qr <= mid) return query(left, nl, mid, ql, qr);
+            if (ql > mid) return query(right, mid + 1, nr, ql, qr);
+            return inf::Merge(query(left, nl, mid, ql, qr), query(right, mid + 1, nr, ql, qr));
+        }
+    
+        Info query(TP l, TP r){
+            return query(1, 0, size-1, l, r);
+        }
+        
+    
+        // nos falta aprender min_right  & max_left :(
+    };
+    //-------------------Monoides----------------------
+    $1
+    //-------------------------------------------------
+    template <typename X>
+    class Node{
+    public: 
+        using Type=X;
+        using Type_pos=int;
+        //-------------------Monoides----------------------
+        using op = 
+        //-------------------------------------------------
+        static constexpr Node Merge(const Node &x, const Node &y) noexcept{
+            return {
+                op::(x.val,y.val)
+            };
+        }
+        //NULL val para cada tipo de operacion 
+        static constexpr Node neutral() { 
+            return{
+                op::neutral()
+            };
+        }
+        //----------------variables----------------
+        X val;
+    };
+snippet SegmentTree_Lazy "Lazy"
+    //Lazy_SegTree Base 
+    template<typename Info>
+    class Lazy_SegTree { 
+    public:
+        using inf = Info;
+        using T = typename Info::Type;
+        using TP = typename Info::Type_Pos;
+        #define left node << 1 
+        #define right node << 1 | 1
+        // --------------- datos---------------------
+        std::vector<Info> Tree;
+        TP size, log;
+        //-------------------------------------------
+        explicit Lazy_SegTree() : size(TP(0)) {}
+        explicit Lazy_SegTree(TP tam) : size(tam){
+            log = 1;
+            while ((1 << log) < size) ++log;
+            size = 1 << log;
+            Tree.assign(size << 2, {inf::neutral()});   
+        }
+        explicit Lazy_SegTree(const std::vector<T> &ar){
+            log = 1;
+            size = sz(ar);
+            while ((1 << log) < size) ++log;
+            size = 1 << log;
+            Tree.assign(size << 1, {inf::neutral()});
+            build(ar);
+        }
+        inline constexpr void modify(TP node) {
+            Tree[node] = inf::Merge(Tree[left], Tree[right]);
+        }
+        inline void init(TP n){
+            size = n;
+            log = 1;
+            while ((1 << log) < size) ++log;
+            size = 1 << log;
+            Tree.assign(size << 2, {inf::neutral()});
+        }
+        void build(const std::vector<T> &ar) {
+            TP tam = (int)ar.size();
+            for (auto i = 0; i < tam; i++) Tree[size + i] = {
+                ar[i]
+            };// se aumenta depende la cantidad de operaciones 
+            for (auto i = size - 1; i; i--) modify(i);
+        }
+        void apply(TP node, T val, TP child) {
+            // verificar que tipo de acumulacion tiene
+            Tree[node].val += val * child; // para este caso es incremento 
+            if (node < size) {
+                Tree[node].Has_Lazy = true;
+                Tree[node].Lazy_Value += val; // para este caso es incremento 
+            }
+        }
+        void propagate(TP node, TP l, TP r) {
+            if(Tree[node].Has_Lazy){
+                TP mid = (l + r) >> 1;
+                if(l != r){
+                    apply(left, Tree[node].Lazy_Value, mid - l + 1);
+                    apply(right, Tree[node].Lazy_Value, r - mid);
+                }
+                Tree[node].Has_Lazy = false;
+                Tree[node].Lazy_Value = inf::init();
+            }
+        }
+        void update(TP node, TP nl, TP nr, TP ql, TP qr, T v) {
+            if (nr < ql || qr < nl) return;
+            if (ql <= nl && nr <= qr) {
+                apply(node, v, nr - nl + 1);
+                return;
+            }
+            propagate(node, nl, nr);
+            TP mid = (nl + nr) >> 1;
+            if (ql <= mid) update(left, nl, mid, ql, qr, v);
+            if (qr > mid) update(right, mid + 1, nr, ql, qr, v);
+            modify(node);
+        }
+        void update(TP l, TP r, T v) {
+            update(1, 0, size - 1, l, r, v);
+        }
+        Info query(TP node, TP nl, TP nr, TP ql, TP qr) {
+            propagate(node,nl,nr);
+            if (ql <= nl && nr <= qr) return Tree[node];
+            TP mid = (nl + nr) >> 1;
+            if (qr <= mid) return query(left, nl, mid, ql, qr);
+            if (ql > mid) return query(right, mid + 1, nr, ql, qr);
+            return inf::Merge(query(left, nl, mid, ql, qr), query(right, mid + 1, nr, ql, qr));
+        }
+        Info query(TP l, TP r) {
+            return query(1, 0, size - 1, l, r);
+        }
+    };
+    //-------------------Monoides----------------------
+    $1
+    //-------------------------------------------------
+    template <typename X>
+    class Node {
+    public:
+        using Type = X;
+        using Type_Pos = int;
+        //--------------------Monoides-----------------------
+        using op = 
+        //- ------------------------------------------
+        static constexpr Node Merge(const Node& x, const Node& y) noexcept {
+            return {
+                op::(x.val , y.val), 
+                init(), // pa los hijos 
+                false // para el lazy
+            };
+        }
+        static constexpr X init() { return X(0); }
+        //NULL Por cada operacion
+        static constexpr Node neutral() { 
+            return {
+                init(), init(), false
+            };
+        }
+        // ------------------variables------------------------
+        X val;
+        //----------------------Lazy--------------------------
+        X Lazy_Value;
+        bool Has_Lazy;
+    };
+
+#STRINGS
+snippet Sepstring "separa un getline y vol convierte en V<string>"
+	std::vector<std::string> split(const std::string &s,char sep){
+	    std::stringstream ss(s);
+	    std::string tmp;
+	    std::vector<std::string> text;
+	    while(getline(ss,tmp,sep)){ 
+	        if(!tmp.empty())
+	            text.eb(tmp);
+	    }
+	    return text;
+	}
+	std::vector<std::string> split(const std::string &str, const std::string &sep) {
+	    std::vector<std::string> text;
+	    size_t start = 0;
+	    size_t end = str.find(sep);
+	    while (end != std::string::npos) {
+	        std::string tmp= str.substr(start, end - start);
+	        if (!tmp.empty()) {
+	            text.eb(tmp);
+	        }
+	        start = end + sz(sep);
+	        end = str.find(sep, start);
+	    }
+	    std::string lasttmp = str.substr(start);
+	    if (!lasttmp.empty()) {
+	        text.eb(lasttmp);
+	    }
+	    return text;
+	}
+snippet z_funtion "funcion Z"
+	std::vector<int> z_function(const std::string s) {
+	    int n =(int)s.size();
+	    std::vector<int> z(n);
+	    int l = 0, r = 0;
+	    for(int i = 1; i < n; i++) {
+	        if(i < r) {
+	            z[i] = std::min<int>(r - i, z[i - l]);
+	        }
+	        while(i + z[i] < n && s[z[i]] == s[i + z[i]]) {
+	            z[i]++;
+	        }
+	        if(i + z[i] > r) {
+	            l = i;
+	            r = i + z[i];
+	        }
+	    }
+	    return z;
+	}
+
+snippet kmp "Prefix function - Knuth-Morris-Pratt"
+	std::vector<int> kmp(const std::string T, std::string P) {
+		int n =(int)T.size(), m =(int)P.size();
+		std::vector<int> b(m + 1),ans; 
+		b[0] = -1;
+		// Preprocess P
+		int i = 0, j = -1;
+		while (i < m) {
+			while (j >= 0 && P[i] != P[j]) j = b[j];
+			i++; j++;
+			b[i] = j;
+		}
+		// Search T
+		i = 0, j = 0;
+		while (i < n) {
+			while (j >= 0 && T[i] != P[j]) j = b[j];
+			i++; j++;
+			if (j == m) {
+				//cout << "P is found at index " << i - j << endl;
+    	        ans.emplace_back((i-j));
+				j = b[j];
+			}
+		}
+		return ans;
+	}
+

@@ -1,0 +1,214 @@
+snippet IO_FAST "solo funciona con archivos"
+    //SOLO FUNCIONA CON ESTRADA POR ARCHIVO "input.txt"
+    struct Scanner {
+        s: std::collections::VecDeque<String>,
+    }
+    #[allow(unused)]
+    impl Scanner {
+        fn new() -> Self {
+            use std::io::Read;
+            let mut s = String::new();
+            std::io::stdin().read_to_string(&mut s).unwrap();
+            Self {
+                s: s.split_whitespace().map(|s| s.to_string()).collect(),
+            }
+        }
+    
+        fn reload(&mut self) {
+            use std::io::Read;
+            let mut s = String::new();
+            std::io::stdin().read_to_string(&mut s).unwrap();
+            self.s = s.split_whitespace().map(|s| s.to_string()).collect();
+        }
+    
+        fn usize(&mut self) -> usize {
+            self.input()
+        }
+    
+        fn usize1(&mut self) -> usize {
+            self.input::<usize>() - 1
+        }
+    
+        fn isize(&mut self) -> isize {
+            self.input()
+        }
+    
+        fn i32(&mut self) -> i32 {
+            self.input()
+        }
+    
+        fn i64(&mut self) -> i64 {
+            self.input()
+        }
+    
+        fn i128(&mut self) -> i128 {
+            self.input()
+        }
+    
+        fn u8(&mut self) -> u8 {
+            self.input()
+        }
+    
+        fn u32(&mut self) -> u32 {
+            self.input()
+        }
+    
+        fn u64(&mut self) -> u64 {
+            self.input()
+        }
+    
+        fn u128(&mut self) -> u128 {
+            self.input()
+        }
+    
+        fn edge(&mut self) -> (usize, usize) {
+            (self.usize1(), self.usize1())
+        }
+    
+        fn edges(&mut self, m: usize) -> Vec<(usize, usize)> {
+            let mut e = Vec::with_capacity(m);
+            for _ in 0..m {
+                e.push(self.edge());
+            }
+            e
+        }
+    
+        fn wedge<T: std::str::FromStr>(&mut self) -> (usize, usize, T) {
+            (self.usize1(), self.usize1(), self.input())
+        }
+    
+        fn wedges<T: std::str::FromStr>(&mut self, m: usize) -> Vec<(usize, usize, T)> {
+            let mut e = Vec::with_capacity(m);
+            for _ in 0..m {
+                e.push(self.wedge());
+            }
+            e
+        }
+    
+        fn input<T>(&mut self) -> T
+        where
+            T: std::str::FromStr,
+        {
+            if self.s.is_empty() {
+                self.reload();
+            }
+            if let Some(head) = self.s.pop_front() {
+                head.parse::<T>().ok().unwrap()
+            } else {
+                panic!()
+            }
+        }
+    
+        fn tuple<T, U>(&mut self) -> (T, U)
+        where
+            T: std::str::FromStr,
+            U: std::str::FromStr,
+        {
+            (self.input(), self.input())
+        }
+    
+        fn vec<T>(&mut self, n: usize) -> Vec<T>
+        where
+            T: std::str::FromStr,
+        {
+            if self.s.is_empty() {
+                self.reload();
+            }
+            self.s
+                .drain(..n)
+                .map(|s| s.parse::<T>().ok().unwrap())
+                .collect::<Vec<T>>()
+        }
+    
+        fn nvec<T>(&mut self) -> Vec<T>
+        where
+            T: std::str::FromStr,
+        {
+            let n: usize = self.input();
+            self.vec(n)
+        }
+    
+        fn chars(&mut self) -> Vec<char> {
+            let s: String = self.input();
+            s.chars().collect()
+        }
+    
+        fn bytes(&mut self) -> Vec<u8> {
+            let s: String = self.input();
+            s.bytes().collect()
+        }
+    }
+    $1
+snippet simple "template basico"
+    fn solve(){
+    }
+    
+    
+    fn main() {
+        let t = 1; 
+        //let t = read!(usize); 
+        for _ in 0..t {
+            solve();
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // IO 
+    #[macro_export]
+    macro_rules! read{ // read multiply varibles and types 
+        ($($type:ty),*) => {{
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            let mut iter = input.split_whitespace();
+            ($(iter.next().unwrap().parse::<$type>().unwrap()),*)
+        }};
+    }
+    #[allow(dead_code)]
+    mod io {
+        pub fn read_vec<T: std::str::FromStr>() -> Vec<T> {
+            loop {
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let result: Result<Vec<T>, _> = input
+                    .split_whitespace()
+                    .map(|x| x.parse::<T>())
+                    .collect();
+                match result {
+                    Ok(vec) => return vec,
+                    Err(_) => println!("Entrada inválida. Inténtalo de nuevo:"),
+                }
+            }
+        }
+        pub fn read_string() -> Vec<char> {
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+            input.trim().chars().collect()
+        }
+        pub fn read_box_char(tam: usize) -> Vec<Vec<char>> {
+            let mut caja = Vec::new();
+            for _ in 0..tam {
+                let tmp = read_string();
+                caja.push(tmp);
+            }
+            caja
+        }
+        pub fn read_box<T: std::str::FromStr>(tam: usize) -> Vec<Vec<T>> {
+            let mut matrix = Vec::new();
+            for _ in 0..tam {
+                let tmp = read_vec();
+                matrix.push(tmp);
+            }
+            matrix
+        }
+    }
+    
+    
