@@ -1,0 +1,18 @@
+#LANZADOR DE PROGRAMAS
+tint2 &
+
+# TRANSPARENCIA
+picom &
+
+#TECLADO
+setxkbmap latam -option km32:km32_fix &
+
+#SCREENS 
+#xrandr --output eDP1 --primary --mode 1366x768 --pos 0x0 --rotate normal --output DP1 --off --output HDMI1 --mode 1360x768 --pos 1366x0 --rotate normal --output HDMI2 --off --output VIRTUAL1 --off
+autorandr -c &
+
+#WALLPAPER
+(sleep 2 && nitrogen --restore) &
+
+#LANZADOR DE POLYBAR
+~/.config/polybar/blocks/launch.sh
