@@ -1,0 +1,21 @@
+/* Color Theme Swatches in Hex */
+.Green--Dark-Blue-1-hex { color: #FFFFFF; }
+.Green--Dark-Blue-2-hex { color: #AEAEAE; }
+.Green--Dark-Blue-3-hex { color: #E64C66; }
+.Green--Dark-Blue-4-hex { color: #2D3E50; }
+.Green--Dark-Blue-5-hex { color: #1BBC9B; }
+
+/* Color Theme Swatches in RGBA */
+.Green--Dark-Blue-1-rgba { color: rgba(255, 255, 255, 1); }
+.Green--Dark-Blue-2-rgba { color: rgba(174, 174, 174, 1); }
+.Green--Dark-Blue-3-rgba { color: rgba(230, 75, 102, 1); }
+.Green--Dark-Blue-4-rgba { color: rgba(45, 61, 80, 1); }
+.Green--Dark-Blue-5-rgba { color: rgba(26, 188, 154, 1); }
+
+/* Color Theme Swatches in HSLA */
+.Green--Dark-Blue-1-hsla { color: hsla(0, 0, 100, 1); }
+.Green--Dark-Blue-2-hsla { color: hsla(0, 0, 68, 1); }
+.Green--Dark-Blue-3-hsla { color: hsla(349, 75, 60, 1); }
+.Green--Dark-Blue-4-hsla { color: hsla(210, 27, 24, 1); }
+.Green--Dark-Blue-5-hsla { color: hsla(167, 74, 42, 1); }
+
